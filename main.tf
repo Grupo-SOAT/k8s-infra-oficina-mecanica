@@ -42,9 +42,31 @@ module "argocd" {
   namespace = var.namespace_argocd
 }
 
+resource "kubernetes_namespace" "oficina" {
+
+  depends_on = [
+    minikube_cluster.cluster
+  ]
+
+  metadata {
+    name = var.namespace_app
+  }
+}
+
+resource "kubernetes_namespace" "argocd" {
+
+  depends_on = [
+    minikube_cluster.cluster
+  ]
+
+  metadata {
+    name = var.namespace_argocd
+  }
+}
+
 locals {
 
-    manifests_path = "${path.module}/../k8s"
+    manifests_path = "${path.module}/k8s"
 
 }
 
@@ -205,7 +227,7 @@ resource "kubectl_manifest" "hpa" {
 
     depends_on = [
 
-        helm_release.metrics_server,
+        module.metrics_server,
 
         kubectl_manifest.deployment-postgres,
 
@@ -220,7 +242,7 @@ resource "kubectl_manifest" "hpa" {
 resource "kubectl_manifest" "ingress" {
 
   depends_on = [
-    helm_release.ingress_nginx,
+    module.ingress_nginx,
     kubectl_manifest.service-monolito
   ]
 
