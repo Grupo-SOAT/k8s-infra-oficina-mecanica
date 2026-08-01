@@ -1,3 +1,4 @@
-output "namespaces" {
-  value = kubernetes_namespace.criando_namespaces
+variable "namespaces" {
+  description = "Lista de namespaces a serem criados"
+  type        = list(string)
 }
