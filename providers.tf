@@ -1,3 +1,10 @@
+provider "aws" {
+
+  region = var.aws_region
+
+}
+
+
 provider "minikube" {
 
   kubernetes_version = "v1.30.2"
