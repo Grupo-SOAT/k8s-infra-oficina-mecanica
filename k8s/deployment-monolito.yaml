@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workshop-backend
+  namespace: oficina-mecanica
+spec:
+  replicas: 1
+
+  selector: 
+    matchLabels:
+      app: workshop-backend
+  template:
+    metadata:
+      labels:
+        app: workshop-backend
+
+    spec:
+      containers:
+        - name: workshop-backend
+
+          image: leonardooziro/sistema-oficina-mecanica-mnl:latest
+
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SPRING_DATASOURCE_URL
+
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: SPRING_DATASOURCE_USERNAME
+            
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: SPRING_DATASOURCE_PASSWORD
+
+            - name: DEFAULT_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: DEFAULT_USER_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: JWT_SECRET
+
+            - name: API_KEY_CHATBOT
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: API_KEY_CHATBOT
+
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SPRING_KAFKA_BOOTSTRAP_SERVERS
+
+          resources:
+            requests:
+              cpu: "400m"
+              memory: "512Mi"
+
+            limits:
+              cpu: "800m"
+              memory: "600Mi"
