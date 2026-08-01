@@ -226,3 +226,12 @@ resource "kubectl_manifest" "ingress" {
 
   yaml_body = file("${local.manifests_path}/ingress.yaml")
 }
+
+module "s3_kafka_storage" {
+
+  source = "./modules/aws/s3"
+
+
+  bucket_name = var.bucket_name_kafka
+
+}

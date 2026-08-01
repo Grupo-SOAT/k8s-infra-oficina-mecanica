@@ -1,3 +1,5 @@
 cluster_name     = "oficina-mecanica-cluster"
 namespace_app    = "oficina-mecanica"
 namespace_argocd = "argocd"
+aws_region = "us-east-1"
+bucket_name_kafka = "oficina-mecanica-kafka-history"
