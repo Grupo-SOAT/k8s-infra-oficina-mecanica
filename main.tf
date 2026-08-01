@@ -42,28 +42,6 @@ module "argocd" {
   namespace = var.namespace_argocd
 }
 
-resource "kubernetes_namespace" "oficina" {
-
-  depends_on = [
-    minikube_cluster.cluster
-  ]
-
-  metadata {
-    name = var.namespace_app
-  }
-}
-
-resource "kubernetes_namespace" "argocd" {
-
-  depends_on = [
-    minikube_cluster.cluster
-  ]
-
-  metadata {
-    name = var.namespace_argocd
-  }
-}
-
 locals {
 
     manifests_path = "${path.module}/k8s"
@@ -72,7 +50,7 @@ locals {
 
 resource "kubectl_manifest" "configmap" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/configmap.yaml")
 
@@ -80,7 +58,7 @@ resource "kubectl_manifest" "configmap" {
 
 resource "kubectl_manifest" "secret" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/secret.yaml")
 
@@ -88,7 +66,7 @@ resource "kubectl_manifest" "secret" {
 
 resource "kubectl_manifest" "pvc" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/pvc.yaml")
 
@@ -96,7 +74,7 @@ resource "kubectl_manifest" "pvc" {
 
 resource "kubectl_manifest" "pvc-kafka" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/pvc-kafka.yaml")
 
@@ -168,7 +146,7 @@ resource "kubectl_manifest" "deployment-ms-orcamentos" {
 
 resource "kubectl_manifest" "deployment-mailpit" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/deployment-mailpit.yaml")
 
