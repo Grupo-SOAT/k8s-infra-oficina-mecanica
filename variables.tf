@@ -18,6 +18,18 @@ variable "bucket_name_kafka" {
   default = "oficina-mecanica-kafka-history"
 }
 
+variable "git_repo_url" {
+  default = "https://github.com/Grupo-SOAT/k8s-infra-oficina-mecanica"
+}
+
+variable "git_target_revision_branch" {
+  default = "main"
+}
+
+variable "git_manifests_path" {
+  default = "k8s"
+}
+
 variable "ecr_repository_name_mnl" {
   default = "registry-oficina-mecanica-mnl"
 }
