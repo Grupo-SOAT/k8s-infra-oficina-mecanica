@@ -1,3 +1,6 @@
 output "namespaces" {
-  value = kubernetes_namespace.criando_namespaces
+  value = [
+    for ns in kubernetes_namespace.criando_namespaces :
+    ns.metadata[0].name
+  ]
 }
