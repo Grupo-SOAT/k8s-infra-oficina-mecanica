@@ -10,109 +10,47 @@ resource "minikube_cluster" "cluster" {
 
 }
 
-
-resource "kubernetes_namespace" "oficina" {
-
-  depends_on = [
-    minikube_cluster.cluster
-  ]
-
-  metadata {
-    name = var.namespace_app
-  }
-}
-
-resource "kubernetes_namespace" "argocd" {
+module "namespaces" {
+  source = "./modules/kubernetes/namespaces"
 
   depends_on = [
     minikube_cluster.cluster
   ]
 
-  metadata {
-    name = var.namespace_argocd
-  }
-}
-
-resource "helm_release" "metrics_server" {
-  depends_on = [
-    kubernetes_namespace.oficina
-  ]
-
-  name       = "metrics-server"
-  namespace  = "kube-system"
-
-  repository = "https://kubernetes-sigs.github.io/metrics-server"
-  chart      = "metrics-server"
-
-  set = [
-    {
-      name  = "args[0]"
-      value = "--kubelet-insecure-tls"
-    }
+  namespaces = [ 
+    var.namespace_app,
+    var.namespace_argocd
   ]
 }
 
-
-resource "helm_release" "ingress_nginx" {
-
-  depends_on = [
-    kubernetes_namespace.oficina
-  ]
-
-  name = "ingress-nginx"
-
-  repository = "https://kubernetes.github.io/ingress-nginx"
-
-  chart = "ingress-nginx"
-
-  namespace = "ingress-nginx"
-
-  create_namespace = true
-
-  timeout = 600
-
-  set = [
-    {
-      name  = "controller.service.type"
-      value = "NodePort"
-    },
-		{
-			name  = "controller.service.nodePorts.http"
-			value = "30080"
-		},
-		{
-			name  = "controller.service.nodePorts.https"
-			value = "30443"
-		}
-  ]
+module "metrics_server" {
+  source = "./modules/helm/metrics-server"
 }
 
-resource "helm_release" "argocd" {
+
+module "ingress_nginx" {
+  source = "./modules/helm/ingress"
+}
+
+module "argocd" {
+  source = "./modules/helm/argocd"
 
   depends_on = [
-    kubernetes_namespace.argocd
+    module.namespaces
   ]
-
-  name = "argocd"
-
-  repository = "https://argoproj.github.io/argo-helm"
-
-  chart = "argo-cd"
-
-  timeout = 600
 
   namespace = var.namespace_argocd
 }
 
 locals {
 
-    manifests_path = "${path.module}/../k8s"
+    manifests_path = "${path.module}/k8s"
 
 }
 
 resource "kubectl_manifest" "configmap" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/configmap.yaml")
 
@@ -120,7 +58,7 @@ resource "kubectl_manifest" "configmap" {
 
 resource "kubectl_manifest" "secret" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/secret.yaml")
 
@@ -128,7 +66,7 @@ resource "kubectl_manifest" "secret" {
 
 resource "kubectl_manifest" "pvc" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/pvc.yaml")
 
@@ -136,7 +74,7 @@ resource "kubectl_manifest" "pvc" {
 
 resource "kubectl_manifest" "pvc-kafka" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/pvc-kafka.yaml")
 
@@ -208,7 +146,7 @@ resource "kubectl_manifest" "deployment-ms-orcamentos" {
 
 resource "kubectl_manifest" "deployment-mailpit" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    depends_on = [ module.namespaces ]
 
     yaml_body = file("${local.manifests_path}/deployment-mailpit.yaml")
 
@@ -267,7 +205,7 @@ resource "kubectl_manifest" "hpa" {
 
     depends_on = [
 
-        helm_release.metrics_server,
+        module.metrics_server,
 
         kubectl_manifest.deployment-postgres,
 
@@ -282,7 +220,7 @@ resource "kubectl_manifest" "hpa" {
 resource "kubectl_manifest" "ingress" {
 
   depends_on = [
-    helm_release.ingress_nginx,
+    module.ingress_nginx,
     kubectl_manifest.service-monolito
   ]
 
