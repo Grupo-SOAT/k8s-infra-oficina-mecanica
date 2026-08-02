@@ -29,3 +29,27 @@ variable "git_target_revision_branch" {
 variable "git_manifests_path" {
   default = "k8s"
 }
+
+variable "ecr_repository_name_mnl" {
+  default = "registry-oficina-mecanica-mnl"
+}
+
+variable "ecr_repository_name_ms_orcamentos" {
+  default = "registry-oficina-mecanica-ms-orcamentos"
+}
+
+variable "image_tag_mutability" {
+  default = "MUTABLE"
+}
+
+variable "ecr_scan_on_push" {
+  default = true
+}
+
+variable "default_tags" {
+  default = {"ManagedBy" = "terraform"}
+}
+
+variable "aws_lab_role" {
+  default = "arn:aws:iam::450853758184:role/voclabs/LabRole"
+}

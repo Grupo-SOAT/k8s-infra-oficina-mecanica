@@ -55,3 +55,49 @@ module "s3_kafka_storage" {
   bucket_name = var.bucket_name_kafka
 
 }
+
+module "ecr_registry_mnl" {
+
+    source = "./modules/aws/ecr"
+
+    repository_name = var.ecr_repository_name_mnl
+
+    image_tag_mutability = var.image_tag_mutability
+
+    scan_on_push = var.ecr_scan_on_push
+
+    tags = var.default_tags
+
+}
+
+module "ecr_registry_ms_orcamentos" {
+
+    source = "./modules/aws/ecr"
+
+    repository_name = var.ecr_repository_name_ms_orcamentos
+
+    image_tag_mutability = var.image_tag_mutability
+
+    scan_on_push = var.ecr_scan_on_push
+
+    tags = var.default_tags
+
+}
+
+module "network" {
+
+  source = "./modules/aws/network"
+
+}
+
+module "eks" {
+
+  source = "./modules/aws/eks"
+
+  subnet_ids = module.network.subnet_ids
+
+  aws_academy_role_arn = var.aws_lab_role
+
+  cluster_name = var.cluster_name
+
+}

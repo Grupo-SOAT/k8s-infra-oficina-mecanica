@@ -6,3 +6,9 @@ bucket_name_kafka = "oficina-mecanica-kafka-history"
 git_repo_url = "https://github.com/Grupo-SOAT/k8s-infra-oficina-mecanica"
 git_target_revision_branch = "main"
 git_manifests_path = "k8s"
+ecr_repository_name_mnl = "registry-oficina-mecanica-mnl"
+ecr_repository_name_ms_orcamentos = "registry-oficina-mecanica-ms-orcamentos"
+image_tag_mutability = "MUTABLE"
+ecr_scan_on_push = true
+default_tags = {"ManagedBy" = "terraform"}
+aws_lab_role = "arn:aws:iam::450853758184:role/voclabs/LabRole"
