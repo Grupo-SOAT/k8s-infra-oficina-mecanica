@@ -17,3 +17,23 @@ variable "aws_region" {
 variable "bucket_name_kafka" {
   default = "oficina-mecanica-kafka-history"
 }
+
+variable "ecr_repository_name_mnl" {
+  default = "registry-oficina-mecanica-mnl"
+}
+
+variable "ecr_repository_name_ms_orcamentos" {
+  default = "registry-oficina-mecanica-ms-orcamentos"
+}
+
+variable "image_tag_mutability" {
+  default = "MUTABLE"
+}
+
+variable "ecr_scan_on_push" {
+  default = true
+}
+
+variable "default_tags" {
+  default = {"ManagedBy" = "terraform"}
+}
