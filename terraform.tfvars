@@ -8,3 +8,4 @@ ecr_repository_name_ms_orcamentos = "registry-oficina-mecanica-ms-orcamentos"
 image_tag_mutability = "MUTABLE"
 ecr_scan_on_push = true
 default_tags = {"ManagedBy" = "terraform"}
+aws_lab_role = "arn:aws:iam::450853758184:role/voclabs/LabRole"

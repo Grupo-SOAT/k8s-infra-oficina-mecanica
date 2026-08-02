@@ -37,3 +37,7 @@ variable "ecr_scan_on_push" {
 variable "default_tags" {
   default = {"ManagedBy" = "terraform"}
 }
+
+variable "aws_lab_role" {
+  default = "arn:aws:iam::450853758184:role/voclabs/LabRole"
+}

@@ -263,3 +263,21 @@ module "ecr_registry_ms_orcamentos" {
     tags = var.default_tags
 
 }
+
+module "network" {
+
+  source = "./modules/aws/network"
+
+}
+
+module "eks" {
+
+  source = "./modules/aws/eks"
+
+  subnet_ids = module.network.subnet_ids
+
+  aws_academy_role_arn = var.aws_lab_role
+
+  cluster_name = var.cluster_name
+
+}
