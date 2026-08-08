@@ -53,3 +53,50 @@ variable "default_tags" {
 variable "aws_lab_role" {
   default = "arn:aws:iam::450853758184:role/voclabs/LabRole"
 }
+
+variable "database_user_secret" {
+  type        = string
+  sensitive   = true
+  description = "usuário do banco de dados"
+}
+
+variable "database_password_secret" {
+  type = string
+  sensitive = true
+  description = "senha do banco de dados"
+}
+
+variable "jwt_secret" {
+  type = string
+  sensitive = true
+  description = "secret para validar assinatura do token jwt"
+}
+
+variable "api_key_chatbot" {
+  type = string
+  sensitive = true
+  description = "chave de acesso do BOT para a api"
+}
+
+variable "spring_datasource_password" {
+  type = string
+  sensitive = true
+  description = "senha para datasource spring"
+}
+
+variable "spring_datasource_username" {
+  type = string
+  sensitive = true
+  description = "usuario para datasource spring"
+}
+
+variable "default_user_password" {
+  type = string
+  sensitive = true
+  description = "senha padrao para os usuarios criados"
+}
+
+variable "project_name" {
+  type = string
+  description = "nome do projeto"
+}

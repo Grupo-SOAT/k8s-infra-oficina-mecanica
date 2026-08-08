@@ -101,3 +101,73 @@ module "eks" {
   cluster_name = var.cluster_name
 
 }
+
+module "database_user_secret" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/database-user"
+  description  = "Credencial de usuário do banco de dados"
+  project_name = var.project_name
+
+  secret_value = var.database_user_secret
+}
+
+module "database_password_secret" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/database-password"
+  description  = "Credencial de senha do banco de dados"
+  project_name = var.project_name
+
+  secret_value = var.database_password_secret
+}
+
+module "jwt_secret" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/jwt-secret"
+  description  = "Secret para validar assinatura jwt"
+  project_name = var.project_name
+
+  secret_value = var.jwt_secret
+}
+
+module "api_key_chatbot" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/api-key-chatbot"
+  description  = "chave para o CHATBOT acessar a API"
+  project_name = var.project_name
+
+  secret_value = var.api_key_chatbot
+}
+
+module "spring_datasource_password" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/spring-datasource-password"
+  description  = "Senha do spring datasource"
+  project_name = var.project_name
+
+  secret_value = var.spring_datasource_password
+}
+
+module "spring_datasource_username" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/spring-datasource-username"
+  description  = "usuario spring datasource"
+  project_name = var.project_name
+
+  secret_value = var.spring_datasource_username
+}
+
+module "default_user_password" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/default-user-password"
+  description  = "Senha default para todo usuario criado no sistema"
+  project_name = var.project_name
+
+  secret_value = var.default_user_password
+}
