@@ -1,20 +1,8 @@
-resource "minikube_cluster" "cluster" {
-
-  driver = "docker"
-
-  cpus = 2
-
-  memory = 6100
-
-  container_runtime = "docker"
-
-}
-
 module "namespaces" {
   source = "./modules/kubernetes/namespaces"
 
   depends_on = [
-    minikube_cluster.cluster
+    module.eks
   ]
 
   namespaces = [ 
