@@ -56,6 +56,12 @@ module "s3_kafka_storage" {
 
 }
 
+module "s3_lambda_code" {
+  source = "./modules/aws/s3"
+
+  bucket_name = var.bucket_name_lambda
+}
+
 module "ecr_registry_mnl" {
 
     source = "./modules/aws/ecr"
@@ -170,4 +176,48 @@ module "default_user_password" {
   project_name = var.project_name
 
   secret_value = var.default_user_password
+}
+
+module "api_gateway" {
+  source = "./modules/aws/api-gateway"
+
+  api_name = "oficina-mecanica-api"
+
+  project_name = var.project_name
+
+  lambda_invoke_arn = module.lambda.invoke_arn
+
+  lambda_function_name = module.lambda.function_name
+
+}
+
+module "lambda" {
+
+  depends_on = [
+    module.s3_lambda_code
+  ]
+  
+  source = "./modules/aws/lambda"
+
+  function_name = "oficina-mecanica-validator"
+
+  project_name = var.project_name
+
+  aws_lab_role_arn = var.aws_lab_role
+
+  runtime = "java21"
+
+  handler = "br.com.oficina.lambda.ValidatorHandler::handleRequest"
+
+  lambda_s3_bucket = var.bucket_name_lambda
+
+  lambda_s3_key    = "oficina-mecanica-validator.zip"
+
+  source_code_hash = var.source_hash_code_lambda
+
+  database_user_secret_arn = module.database_user_secret.secret_arn
+
+  database_password_secret_arn = module.database_password_secret.secret_arn
+
+  backend_url = var.backend_url
 }

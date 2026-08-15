@@ -18,6 +18,10 @@ variable "bucket_name_kafka" {
   default = "oficina-mecanica-kafka-history"
 }
 
+variable "bucket_name_lambda" {
+  default = "lambda-code-archive"
+}
+
 variable "git_repo_url" {
   default = "https://github.com/Grupo-SOAT/k8s-infra-oficina-mecanica"
 }
@@ -99,4 +103,18 @@ variable "default_user_password" {
 variable "project_name" {
   type = string
   description = "nome do projeto"
+}
+
+variable "backend_url" {
+
+  type = string
+  description = "backend url para a lambda acessar (basicamente será o host que estará o load balancer AWS do cluster EKS)"
+  
+}
+
+variable "source_hash_code_lambda" {
+
+  type = string
+  description = "hash do arquivo zip do codigo lambda SHA256 (em base64)"
+
 }
