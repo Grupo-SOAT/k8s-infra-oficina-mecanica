@@ -1,290 +1,223 @@
-resource "minikube_cluster" "cluster" {
-
-  driver = "docker"
-
-  cpus = 2
-
-  memory = 6100
-
-  container_runtime = "docker"
-
-}
-
-
-resource "kubernetes_namespace" "oficina" {
+module "namespaces" {
+  source = "./modules/kubernetes/namespaces"
 
   depends_on = [
-    minikube_cluster.cluster
+    module.eks
   ]
 
-  metadata {
-    name = var.namespace_app
-  }
+  namespaces = [ 
+    var.namespace_app,
+    var.namespace_argocd
+  ]
 }
 
-resource "kubernetes_namespace" "argocd" {
+module "metrics_server" {
+  source = "./modules/helm/metrics-server"
 
   depends_on = [
-    minikube_cluster.cluster
-  ]
-
-  metadata {
-    name = var.namespace_argocd
-  }
-}
-
-resource "helm_release" "metrics_server" {
-  depends_on = [
-    kubernetes_namespace.oficina
-  ]
-
-  name       = "metrics-server"
-  namespace  = "kube-system"
-
-  repository = "https://kubernetes-sigs.github.io/metrics-server"
-  chart      = "metrics-server"
-
-  set = [
-    {
-      name  = "args[0]"
-      value = "--kubelet-insecure-tls"
-    }
+    module.eks
   ]
 }
 
 
-resource "helm_release" "ingress_nginx" {
+module "aws_load_balancer_controller" {
+  source = "./modules/kubernetes/aws-load-balancer-controller"
 
   depends_on = [
-    kubernetes_namespace.oficina
+    module.eks
   ]
 
-  name = "ingress-nginx"
-
-  repository = "https://kubernetes.github.io/ingress-nginx"
-
-  chart = "ingress-nginx"
-
-  namespace = "ingress-nginx"
-
-  create_namespace = true
-
-  timeout = 600
-
-  set = [
-    {
-      name  = "controller.service.type"
-      value = "NodePort"
-    },
-		{
-			name  = "controller.service.nodePorts.http"
-			value = "30080"
-		},
-		{
-			name  = "controller.service.nodePorts.https"
-			value = "30443"
-		}
-  ]
+  cluster_name = module.eks.cluster_name
+  aws_region   = var.aws_region
+  vpc_id       = module.eks.vpc_id
 }
 
-resource "helm_release" "argocd" {
+module "argocd" {
+  source = "./modules/argocd"
 
   depends_on = [
-    kubernetes_namespace.argocd
+    module.namespaces
   ]
 
-  name = "argocd"
+	namespace = var.namespace_argocd
+  app_namespace   = var.namespace_app
 
-  repository = "https://argoproj.github.io/argo-helm"
-
-  chart = "argo-cd"
-
-  timeout = 600
-
-  namespace = var.namespace_argocd
+  repo_url        = var.git_repo_url
+  target_revision_branch = var.git_target_revision_branch
+  manifests_path       = var.git_manifests_path
 }
 
-locals {
+module "s3_kafka_storage" {
 
-    manifests_path = "${path.module}/../k8s"
+  source = "./modules/aws/s3"
 
-}
 
-resource "kubectl_manifest" "configmap" {
-
-    depends_on = [ kubernetes_namespace.oficina ]
-
-    yaml_body = file("${local.manifests_path}/configmap.yaml")
+  bucket_name = var.bucket_name_kafka
 
 }
 
-resource "kubectl_manifest" "secret" {
+module "s3_lambda_code" {
+  source = "./modules/aws/s3"
 
-    depends_on = [ kubernetes_namespace.oficina ]
+  bucket_name = var.bucket_name_lambda
+}
 
-    yaml_body = file("${local.manifests_path}/secret.yaml")
+module "ecr_registry_mnl" {
+
+    source = "./modules/aws/ecr"
+
+    repository_name = var.ecr_repository_name_mnl
+
+    image_tag_mutability = var.image_tag_mutability
+
+    scan_on_push = var.ecr_scan_on_push
+
+    tags = var.default_tags
 
 }
 
-resource "kubectl_manifest" "pvc" {
+module "ecr_registry_ms_orcamentos" {
 
-    depends_on = [ kubernetes_namespace.oficina ]
+    source = "./modules/aws/ecr"
 
-    yaml_body = file("${local.manifests_path}/pvc.yaml")
+    repository_name = var.ecr_repository_name_ms_orcamentos
 
-}
+    image_tag_mutability = var.image_tag_mutability
 
-resource "kubectl_manifest" "pvc-kafka" {
+    scan_on_push = var.ecr_scan_on_push
 
-    depends_on = [ kubernetes_namespace.oficina ]
-
-    yaml_body = file("${local.manifests_path}/pvc-kafka.yaml")
+    tags = var.default_tags
 
 }
 
-resource "kubectl_manifest" "deployment-postgres" {
+module "network" {
 
-    depends_on = [
-
-        kubectl_manifest.configmap,
-
-        kubectl_manifest.secret,
-
-        kubectl_manifest.pvc
-
-    ]
-
-    yaml_body = file("${local.manifests_path}/deployment-postgres.yaml")
+  source = "./modules/aws/network"
 
 }
 
-resource "kubectl_manifest" "deployment-kafka" {
+module "eks" {
 
-    depends_on = [
+  source = "./modules/aws/eks"
 
-        kubectl_manifest.configmap,
+  subnet_ids = module.network.subnet_ids
 
-        kubectl_manifest.secret,
+  aws_academy_role_arn = var.aws_lab_role
 
-        kubectl_manifest.pvc-kafka
-
-    ]
-
-    yaml_body = file("${local.manifests_path}/deployment-kafka.yaml")
+  cluster_name = var.cluster_name
 
 }
 
-resource "kubectl_manifest" "deployment-kafka-ui" {
+module "database_user_secret" {
+  source = "./modules/aws/secret-manager"
 
-    depends_on = [
+  secret_name  = "oficina-mecanica/database-user"
+  description  = "Credencial de usuário do banco de dados"
+  project_name = var.project_name
 
-        kubectl_manifest.configmap,
+  secret_value = var.database_user_secret
+}
 
-        kubectl_manifest.secret,
+module "database_password_secret" {
+  source = "./modules/aws/secret-manager"
 
-        kubectl_manifest.pvc-kafka
+  secret_name  = "oficina-mecanica/database-password"
+  description  = "Credencial de senha do banco de dados"
+  project_name = var.project_name
 
-    ]
+  secret_value = var.database_password_secret
+}
 
-    yaml_body = file("${local.manifests_path}/deployment-kafka-ui.yaml")
+module "jwt_secret" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/jwt-secret"
+  description  = "Secret para validar assinatura jwt"
+  project_name = var.project_name
+
+  secret_value = var.jwt_secret
+}
+
+module "api_key_chatbot" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/api-key-chatbot"
+  description  = "chave para o CHATBOT acessar a API"
+  project_name = var.project_name
+
+  secret_value = var.api_key_chatbot
+}
+
+module "spring_datasource_password" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/spring-datasource-password"
+  description  = "Senha do spring datasource"
+  project_name = var.project_name
+
+  secret_value = var.spring_datasource_password
+}
+
+module "spring_datasource_username" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/spring-datasource-username"
+  description  = "usuario spring datasource"
+  project_name = var.project_name
+
+  secret_value = var.spring_datasource_username
+}
+
+module "default_user_password" {
+  source = "./modules/aws/secret-manager"
+
+  secret_name  = "oficina-mecanica/default-user-password"
+  description  = "Senha default para todo usuario criado no sistema"
+  project_name = var.project_name
+
+  secret_value = var.default_user_password
+}
+
+module "api_gateway" {
+  source = "./modules/aws/api-gateway"
+
+  api_name = "oficina-mecanica-api"
+
+  project_name = var.project_name
+
+  lambda_invoke_arn = module.lambda.invoke_arn
+
+  lambda_function_name = module.lambda.function_name
 
 }
 
-resource "kubectl_manifest" "deployment-monolito" {
-
-    depends_on = [ kubectl_manifest.deployment-postgres, kubectl_manifest.deployment-kafka ]
-
-    yaml_body = file("${local.manifests_path}/deployment-monolito.yaml")
-
-}
-
-resource "kubectl_manifest" "deployment-ms-orcamentos" {
-
-    depends_on = [ kubectl_manifest.deployment-postgres, kubectl_manifest.deployment-kafka, kubectl_manifest.deployment-mailpit ]
-
-    yaml_body = file("${local.manifests_path}/deployment-ms-orcamentos.yaml")
-
-}
-
-resource "kubectl_manifest" "deployment-mailpit" {
-
-    depends_on = [ kubernetes_namespace.oficina ]
-
-    yaml_body = file("${local.manifests_path}/deployment-mailpit.yaml")
-
-}
-
-
-resource "kubectl_manifest" "service-postgres" {
-
-    depends_on = [ kubectl_manifest.deployment-postgres ]
-
-    yaml_body = file("${local.manifests_path}/service-postgres.yaml")
-
-}
-
-resource "kubectl_manifest" "service-monolito" {
-
-    depends_on = [ kubectl_manifest.deployment-monolito ]
-
-    yaml_body = file("${local.manifests_path}/service-monolito.yaml")
-
-}
-
-resource "kubectl_manifest" "service-kafka" {
-
-    depends_on = [ kubectl_manifest.deployment-kafka ]
-
-    yaml_body = file("${local.manifests_path}/service-kafka.yaml")
-
-}
-
-resource "kubectl_manifest" "service-kafka-ui" {
-
-    depends_on = [ kubectl_manifest.deployment-kafka-ui ]
-
-    yaml_body = file("${local.manifests_path}/service-kafka-ui.yaml")
-
-}
-
-resource "kubectl_manifest" "service-mailpit" {
-
-    depends_on = [ kubectl_manifest.deployment-mailpit ]
-
-    yaml_body = file("${local.manifests_path}/service-mailpit.yaml")
-
-}
-
-resource "kubectl_manifest" "service-ms-orcamentos" {
-
-    depends_on = [ kubectl_manifest.deployment-ms-orcamentos ]
-
-    yaml_body = file("${local.manifests_path}/service-ms-orcamentos.yaml")
-
-}
-
-resource "kubectl_manifest" "hpa" {
-
-    depends_on = [
-
-        helm_release.metrics_server,
-
-        kubectl_manifest.deployment-postgres,
-
-        kubectl_manifest.deployment-monolito
-
-    ]
-
-    yaml_body = file("${local.manifests_path}/hpa.yaml")
-
-}
-
-resource "kubectl_manifest" "ingress" {
+module "lambda" {
 
   depends_on = [
-    helm_release.ingress_nginx,
-    kubectl_manifest.service-monolito
+    module.s3_lambda_code
   ]
+  
+  source = "./modules/aws/lambda"
 
-  yaml_body = file("${local.manifests_path}/ingress.yaml")
+  function_name = "oficina-mecanica-validator"
+
+  project_name = var.project_name
+
+  aws_lab_role_arn = var.aws_lab_role
+
+  runtime = "java21"
+
+  handler = "br.com.oficina.lambda.ValidatorHandler::handleRequest"
+
+  lambda_s3_bucket = var.bucket_name_lambda
+
+  lambda_s3_key    = "oficina-mecanica-validator.zip"
+
+  source_code_hash = var.source_hash_code_lambda
+
+  database_user_secret_arn = module.database_user_secret.secret_arn
+
+  database_password_secret_arn = module.database_password_secret.secret_arn
+
+  backend_url = var.backend_url
 }
