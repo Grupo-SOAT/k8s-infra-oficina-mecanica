@@ -29,7 +29,7 @@ module "aws_load_balancer_controller" {
 
   cluster_name = module.eks.cluster_name
   aws_region   = var.aws_region
-  vpc_id       = module.eks.vpc_id
+  vpc_id       = module.network.vpc_id
 }
 
 module "argocd" {

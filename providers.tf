@@ -6,13 +6,13 @@ provider "aws" {
 
 provider "kubernetes" {
 
-  host                   = module.eks.cluster.host
+  host                   = module.eks.cluster_endpoint
 
-  client_certificate     = module.eks.cluster.client_certificate
+  client_certificate     = module.eks.cluster_certificate_authority_data
 
   client_key             = module.eks.cluster.client_key
 
-  cluster_ca_certificate = module.eks.cluster.cluster_ca_certificate
+  cluster_ca_certificate = module.eks.cluster_certificate_authority_data
 
 }
 
@@ -20,22 +20,22 @@ provider "helm" {
 
   kubernetes = {
 
-    host                   = module.eks.cluster.host
+    host                   = module.eks.cluster_endpoint
 
-    client_certificate     = module.eks.cluster.client_certificate
+    client_certificate     = module.eks.cluster_certificate_authority_data
 
     client_key             = module.eks.cluster.client_key
 
-    cluster_ca_certificate = module.eks.cluster.cluster_ca_certificate
+    cluster_ca_certificate = module.eks.cluster_certificate_authority_data
 
   }
 
 }
 
 provider "kubectl" {
-  host                   = module.eks.cluster.host
-  client_certificate     = module.eks.cluster.client_certificate
+  host                   = module.eks.cluster_endpoint
+  client_certificate     = module.eks.cluster_certificate_authority_data
   client_key             = module.eks.cluster.client_key
-  cluster_ca_certificate = module.eks.cluster.cluster_ca_certificate
+  cluster_ca_certificate = module.eks.cluster_certificate_authority_data
   load_config_file       = false
 }
