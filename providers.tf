@@ -4,22 +4,15 @@ provider "aws" {
 
 }
 
-
-provider "minikube" {
-
-  kubernetes_version = "v1.30.2"
-
-}
-
 provider "kubernetes" {
 
-  host                   = minikube_cluster.cluster.host
+  host                   = module.eks.cluster.host
 
-  client_certificate     = minikube_cluster.cluster.client_certificate
+  client_certificate     = module.eks.cluster.client_certificate
 
-  client_key             = minikube_cluster.cluster.client_key
+  client_key             = module.eks.cluster.client_key
 
-  cluster_ca_certificate = minikube_cluster.cluster.cluster_ca_certificate
+  cluster_ca_certificate = module.eks.cluster.cluster_ca_certificate
 
 }
 
@@ -27,22 +20,22 @@ provider "helm" {
 
   kubernetes = {
 
-    host                   = minikube_cluster.cluster.host
+    host                   = module.eks.cluster.host
 
-    client_certificate     = minikube_cluster.cluster.client_certificate
+    client_certificate     = module.eks.cluster.client_certificate
 
-    client_key             = minikube_cluster.cluster.client_key
+    client_key             = module.eks.cluster.client_key
 
-    cluster_ca_certificate = minikube_cluster.cluster.cluster_ca_certificate
+    cluster_ca_certificate = module.eks.cluster.cluster_ca_certificate
 
   }
 
 }
 
 provider "kubectl" {
-  host                   = minikube_cluster.cluster.host
-  client_certificate     = minikube_cluster.cluster.client_certificate
-  client_key             = minikube_cluster.cluster.client_key
-  cluster_ca_certificate = minikube_cluster.cluster.cluster_ca_certificate
+  host                   = module.eks.cluster.host
+  client_certificate     = module.eks.cluster.client_certificate
+  client_key             = module.eks.cluster.client_key
+  cluster_ca_certificate = module.eks.cluster.cluster_ca_certificate
   load_config_file       = false
 }
