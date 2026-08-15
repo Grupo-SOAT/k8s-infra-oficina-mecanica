@@ -15,6 +15,11 @@ jobs:
 
       - name: Checkout Repository
         uses: actions/checkout@v4
+    
+      - name: Setup Terraform on Runner
+        uses: hashicorp/setup-terraform@v4
+        with:
+            terraform_version: "1.15.6"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
