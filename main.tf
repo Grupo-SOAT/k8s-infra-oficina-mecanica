@@ -13,6 +13,10 @@ module "namespaces" {
 
 module "metrics_server" {
   source = "./modules/helm/metrics-server"
+
+  depends_on = [
+    module.eks
+  ]
 }
 
 
