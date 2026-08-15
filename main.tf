@@ -21,7 +21,7 @@ module "metrics_server" {
 
 
 module "aws_load_balancer_controller" {
-  source = "./modules/helm/aws-load-balancer-controller"
+  source = "./modules/helm/aws-load-balancer"
 
   depends_on = [
     module.eks
