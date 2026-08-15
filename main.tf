@@ -1,20 +1,8 @@
-resource "minikube_cluster" "cluster" {
-
-  driver = "docker"
-
-  cpus = 2
-
-  memory = 6100
-
-  container_runtime = "docker"
-
-}
-
 module "namespaces" {
   source = "./modules/kubernetes/namespaces"
 
   depends_on = [
-    minikube_cluster.cluster
+    module.eks
   ]
 
   namespaces = [ 
@@ -25,11 +13,23 @@ module "namespaces" {
 
 module "metrics_server" {
   source = "./modules/helm/metrics-server"
+
+  depends_on = [
+    module.eks
+  ]
 }
 
 
-module "ingress_nginx" {
-  source = "./modules/helm/ingress"
+module "aws_load_balancer_controller" {
+  source = "./modules/kubernetes/aws-load-balancer-controller"
+
+  depends_on = [
+    module.eks
+  ]
+
+  cluster_name = module.eks.cluster_name
+  aws_region   = var.aws_region
+  vpc_id       = module.eks.vpc_id
 }
 
 module "argocd" {
