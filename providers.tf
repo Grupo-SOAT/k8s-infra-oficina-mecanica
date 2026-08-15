@@ -10,8 +10,6 @@ provider "kubernetes" {
 
   client_certificate     = module.eks.cluster_certificate_authority_data
 
-  client_key             = module.eks.cluster.client_key
-
   cluster_ca_certificate = module.eks.cluster_certificate_authority_data
 
 }
@@ -24,8 +22,6 @@ provider "helm" {
 
     client_certificate     = module.eks.cluster_certificate_authority_data
 
-    client_key             = module.eks.cluster.client_key
-
     cluster_ca_certificate = module.eks.cluster_certificate_authority_data
 
   }
@@ -35,7 +31,6 @@ provider "helm" {
 provider "kubectl" {
   host                   = module.eks.cluster_endpoint
   client_certificate     = module.eks.cluster_certificate_authority_data
-  client_key             = module.eks.cluster.client_key
   cluster_ca_certificate = module.eks.cluster_certificate_authority_data
   load_config_file       = false
 }
