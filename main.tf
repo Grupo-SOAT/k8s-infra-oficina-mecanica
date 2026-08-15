@@ -28,8 +28,16 @@ module "metrics_server" {
 }
 
 
-module "ingress_nginx" {
-  source = "./modules/helm/ingress"
+module "aws_load_balancer_controller" {
+  source = "./modules/kubernetes/aws-load-balancer-controller"
+
+  depends_on = [
+    module.eks
+  ]
+
+  cluster_name = module.eks.cluster_name
+  aws_region   = var.aws_region
+  vpc_id       = module.eks.vpc_id
 }
 
 module "argocd" {
