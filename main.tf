@@ -21,7 +21,7 @@ module "metrics_server" {
 
 
 module "aws_load_balancer_controller" {
-  source = "./modules/kubernetes/aws-load-balancer-controller"
+  source = "./modules/helm/aws-load-balancer-controller"
 
   depends_on = [
     module.eks
@@ -179,15 +179,15 @@ module "default_user_password" {
 }
 
 module "api_gateway" {
-  source = "./modules/aws/api-gateway"
+  source = "./modules/aws/gateway"
 
   api_name = "oficina-mecanica-api"
 
   project_name = var.project_name
 
-  lambda_invoke_arn = module.lambda.invoke_arn
-
   lambda_function_name = module.lambda.function_name
+
+  lambda_arn = module.lambda.function_arn
 
 }
 
@@ -196,7 +196,7 @@ module "lambda" {
   depends_on = [
     module.s3_lambda_code
   ]
-  
+
   source = "./modules/aws/lambda"
 
   function_name = "oficina-mecanica-validator"
