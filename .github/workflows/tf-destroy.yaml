@@ -34,3 +34,33 @@ jobs:
 
       - name: Destroy all Resources
         run: terraform destroy -auto-approve
+      
+      - name: Destroy AWS secrets Brute force
+        run: |
+          aws secretsmanager delete-secret \
+          --secret-id "oficina-mecanica/database-password" \
+          --force-delete-without-recovery
+
+          aws secretsmanager delete-secret \
+            --secret-id "oficina-mecanica/spring-datasource-username" \
+            --force-delete-without-recovery
+
+          aws secretsmanager delete-secret \
+            --secret-id "oficina-mecanica/api-key-chatbot" \
+            --force-delete-without-recovery
+
+          aws secretsmanager delete-secret \
+            --secret-id "oficina-mecanica/default-user-password" \
+            --force-delete-without-recovery
+
+          aws secretsmanager delete-secret \
+            --secret-id "oficina-mecanica/spring-datasource-password" \
+            --force-delete-without-recovery
+
+          aws secretsmanager delete-secret \
+            --secret-id "oficina-mecanica/jwt-secret" \
+            --force-delete-without-recovery
+          
+          aws secretsmanager delete-secret \
+            --secret-id "oficina-mecanica/database-user" \
+            --force-delete-without-recovery
