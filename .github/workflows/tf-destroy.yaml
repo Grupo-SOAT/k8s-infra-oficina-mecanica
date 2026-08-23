@@ -31,38 +31,55 @@ jobs:
       
       - name: Destroy Bucket Objects
         run: |
-          sudo apt install jq
+          set -e
 
-          export BUCKET="lambda-code-archive-oficina-mecanica"
+          BUCKETS=(
+            "lambda-code-archive-oficina-mecanica"
+            "oficina-mecanica-kafka-history"
+          )
 
-          echo "Limpando o bucket: $BUCKET"
+          for BUCKET in "${BUCKETS[@]}"; do
+            echo "=========================================="
+            echo "Limpando bucket: $BUCKET"
+            echo "=========================================="
 
-          aws s3api list-object-versions --bucket "$BUCKET" --output=json \
-            --query='{Objects: append(Versions[].{Key:Key, VersionId:VersionId}, DeleteMarkers[].{Key:Key, VersionId:VersionId})}' | \
-            jq -c '.Objects | select(. != null)' | while read -r batch; do
-              # O S3 permite deletar até 1000 objetos por requisição
-              echo "$batch" | jq -r 'chunk(1000)[] | {Objects: .}' | while read -r chunk; do
-                aws s3api delete-objects --bucket "$BUCKET" --delete "$chunk"
-              done
+            while true; do
+
+              VERSIONS=$(aws s3api list-object-versions \
+                --bucket "$BUCKET" \
+                --query 'Versions[].{Key:Key,VersionId:VersionId}' \
+                --output json)
+
+              DELETE_MARKERS=$(aws s3api list-object-versions \
+                --bucket "$BUCKET" \
+                --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' \
+                --output json)
+
+              OBJECTS=$(jq -n \
+                --argjson versions "$VERSIONS" \
+                --argjson markers "$DELETE_MARKERS" \
+                '$versions + $markers')
+
+              COUNT=$(echo "$OBJECTS" | jq 'length')
+
+              if [ "$COUNT" -eq 0 ]; then
+                echo "Nenhum objeto restante."
+                break
+              fi
+
+              echo "Excluindo $COUNT objetos/versões..."
+
+              echo "$OBJECTS" |
+                jq '{Objects: .[:1000]}' |
+                aws s3api delete-objects \
+                  --bucket "$BUCKET" \
+                  --delete file:///dev/stdin
+
             done
 
-          echo "Objetos excluídos com sucesso."
-
-
-          export BUCKET="oficina-mecanica-kafka-history"
-
-          echo "Limpando o bucket: $BUCKET"
-
-          aws s3api list-object-versions --bucket "$BUCKET" --output=json \
-            --query='{Objects: append(Versions[].{Key:Key, VersionId:VersionId}, DeleteMarkers[].{Key:Key, VersionId:VersionId})}' | \
-            jq -c '.Objects | select(. != null)' | while read -r batch; do
-              # O S3 permite deletar até 1000 objetos por requisição
-              echo "$batch" | jq -r 'chunk(1000)[] | {Objects: .}' | while read -r chunk; do
-                aws s3api delete-objects --bucket "$BUCKET" --delete "$chunk"
-              done
-            done
-
-          echo "Objetos excluídos com sucesso."
+            echo "Bucket $BUCKET limpo com sucesso."
+            echo
+          done
 
       - name: Initialize Terraform
         run: terraform init
