@@ -14,13 +14,5 @@ ecr_scan_on_push = true
 default_tags = {"ManagedBy" = "terraform"}
 aws_lab_role = "arn:aws:iam::450853758184:role/LabRole"
 project_name = "oficina-mecanica"
-database_user_secret = "database_user_secret"
-database_password_secret = "database_password_secret"
-jwt_secret = "jwt_secret"
-api_key_chatbot = "api_key_chatbot"
-spring_datasource_password = "spring_datasource_password"
-spring_datasource_username = "spring_datasource_username"
-default_user_password = "default_user_password"
+
 backend_url = "http://localhost:8080"
-source_hash_code_lambda = "source_hash_code_lambda"
-lambda_s3_key = "lambda_s3_key"

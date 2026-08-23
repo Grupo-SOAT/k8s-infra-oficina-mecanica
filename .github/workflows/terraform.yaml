@@ -46,7 +46,7 @@ jobs:
       - name: Set Lambda Variables
         if: github.event_name == 'repository_dispatch'
         run: |
-          echo "TF_VAR_lambda_source_code_hash=${{ github.event.client_payload.lambda_hash }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_source_hash_code_lambda=${{ github.event.client_payload.lambda_hash }}" >> "$GITHUB_ENV"
           echo "TF_VAR_lambda_s3_key=${{ github.event.client_payload.lambda_key }}" >> "$GITHUB_ENV"
 
       - name: Terraform Init
@@ -62,8 +62,10 @@ jobs:
         run: terraform apply -auto-approve
 
       # - name: Set Real Backend URL
+      # if: github.event_name == 'repository_dispatch'
       #   run: |
       #     echo "TF_VAR_backend_url=${{ var.REAL_URL }}" >> "$GITHUB_ENV"
 
       # - name: Terraform Apply Again 
+      # if: github.event_name == 'repository_dispatch'
       #   run: terraform apply -auto-approve
