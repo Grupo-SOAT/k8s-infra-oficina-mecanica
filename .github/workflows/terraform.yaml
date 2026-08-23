@@ -59,7 +59,16 @@ jobs:
         run: terraform plan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: |
+          terraform apply -auto-approve \ 
+            -var="database_user_secret=${{ secrets.POSTGRES_USER }}" \
+            -var="database_password_secret=${{ secrets.POSTGRES_PASSWORD }}" \
+            -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
+            -var="api_key_chatbot=${{ secrets.API_KEY_CHATBOT }}" \
+            -var="spring_datasource_password=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" \
+            -var="spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" \
+            -var="source_hash_code_lambda=${{ github.event.client_payload.lambda_hash }}" \
+            -var="lambda_s3_key=${{ github.event.client_payload.lambda_key }}" \
 
       # - name: Set Real Backend URL
       # if: github.event_name == 'repository_dispatch'
