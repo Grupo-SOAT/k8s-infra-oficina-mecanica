@@ -85,9 +85,6 @@ jobs:
       - name: Initialize Terraform
         run: terraform init
 
-      - name: Destroy ALB
-        run: terraform destroy -auto-approve -target=module.aws_load_balancer_controller
-
       - name: Destroy all Resources
         run: terraform destroy -auto-approve
       
