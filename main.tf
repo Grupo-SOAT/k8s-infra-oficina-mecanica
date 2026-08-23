@@ -211,7 +211,7 @@ module "lambda" {
 
   lambda_s3_bucket = var.bucket_name_lambda
 
-  lambda_s3_key    = "oficina-mecanica-validator.zip"
+  lambda_s3_key    = var.lambda_s3_key
 
   source_code_hash = var.source_hash_code_lambda
 

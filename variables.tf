@@ -118,3 +118,8 @@ variable "source_hash_code_lambda" {
   description = "hash do arquivo zip do codigo lambda SHA256 (em base64)"
 
 }
+
+variable "lambda_s3_key" {
+  type = string
+  description = "nome do artefato upado no bucket lambda"
+}
