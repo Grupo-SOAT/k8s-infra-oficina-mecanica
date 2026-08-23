@@ -5,10 +5,7 @@ resource "aws_eks_cluster" "this" {
   version  = var.cluster_version
 
   vpc_config {
-    subnet_ids = [
-      aws_subnet.private_a.id,
-      aws_subnet.private_b.id
-    ]
+    subnet_ids = var.subnet_ids
     endpoint_public_access = true
     endpoint_private_access = true
   }
