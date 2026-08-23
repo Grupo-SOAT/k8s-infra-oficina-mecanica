@@ -1,0 +1,64 @@
+name: Deploy AWS Resources
+
+on:
+  workflow_dispatch:
+
+  repository_dispatch:
+    types:
+      - lambda-updated
+
+jobs:
+
+  deploy-infra:
+
+    name: Deploy AWS Resources
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+      
+      - name: Set Secrets for Terraform
+        run: |
+          echo "TF_VAR_database_user_secret=${{ secrets.POSTGRES_USER }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_database_password_secret=${{ secrets.POSTGRES_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_jwt_secret=${{ secrets.JWT_SECRET }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_api_key_chatbot=${{ secrets.API_KEY_CHATBOT }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_spring_datasource_password=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" >> "$GITHUB_ENV"
+
+      - name: Set Lambda Variables
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          echo "TF_VAR_lambda_source_code_hash=${{ github.event.client_payload.lambda_hash }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_lambda_s3_key=${{ github.event.client_payload.lambda_key }}" >> "$GITHUB_ENV"
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      # - name: Set Real Backend URL
+      #   run: |
+      #     echo "TF_VAR_backend_url=${{ var.REAL_URL }}" >> "$GITHUB_ENV"
+
+      # - name: Terraform Apply Again 
+      #   run: terraform apply -auto-approve
