@@ -28,6 +28,41 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
+      
+      - name: Destroy Bucket Objects
+        run: |
+          sudo apt install jq
+
+          export BUCKET="lambda-code-archive-oficina-mecanica"
+
+          echo "Limpando o bucket: $BUCKET"
+
+          aws s3api list-object-versions --bucket "$BUCKET" --output=json \
+            --query='{Objects: append(Versions[].{Key:Key, VersionId:VersionId}, DeleteMarkers[].{Key:Key, VersionId:VersionId})}' | \
+            jq -c '.Objects | select(. != null)' | while read -r batch; do
+              # O S3 permite deletar até 1000 objetos por requisição
+              echo "$batch" | jq -r 'chunk(1000)[] | {Objects: .}' | while read -r chunk; do
+                aws s3api delete-objects --bucket "$BUCKET" --delete "$chunk"
+              done
+            done
+
+          echo "Objetos excluídos com sucesso."
+
+
+          export BUCKET="oficina-mecanica-kafka-history"
+
+          echo "Limpando o bucket: $BUCKET"
+
+          aws s3api list-object-versions --bucket "$BUCKET" --output=json \
+            --query='{Objects: append(Versions[].{Key:Key, VersionId:VersionId}, DeleteMarkers[].{Key:Key, VersionId:VersionId})}' | \
+            jq -c '.Objects | select(. != null)' | while read -r batch; do
+              # O S3 permite deletar até 1000 objetos por requisição
+              echo "$batch" | jq -r 'chunk(1000)[] | {Objects: .}' | while read -r chunk; do
+                aws s3api delete-objects --bucket "$BUCKET" --delete "$chunk"
+              done
+            done
+
+          echo "Objetos excluídos com sucesso."
 
       - name: Initialize Terraform
         run: terraform init
