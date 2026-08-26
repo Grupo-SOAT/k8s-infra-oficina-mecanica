@@ -123,3 +123,18 @@ variable "lambda_s3_key" {
   type = string
   description = "nome do artefato upado no bucket lambda"
 }
+
+variable "database_host" {
+  type        = string
+  description = "Host do Postgres gerenciado (RDS), a ser preenchido com o output do repo db-oficina-mecanica assim que o banco for provisionado"
+}
+
+variable "database_port" {
+  type    = number
+  default = 5432
+}
+
+variable "database_name" {
+  type    = string
+  default = "workshop"
+}
