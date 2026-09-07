@@ -50,7 +50,7 @@ jobs:
         run: terraform validate
 
       - name: Plan Terraform
-        run: terraform plan -refresh=false
+        run: terraform plan 
 
       - name: Create Lambda Code Bucket
-        run: terraform apply -auto-approve -target=module.s3_lambda_code -refresh=false
+        run: terraform apply -auto-approve -target=module.s3_lambda_code 
