@@ -87,6 +87,38 @@ variable "database_password_secret_arn" {
 }
 
 
+variable "database_host" {
+
+  type        = string
+  description = "Host do Postgres (RDS gerenciado, ver repo db-oficina-mecanica) que a lambda consulta para validar o cliente"
+
+}
+
+
+variable "database_port" {
+
+  type    = number
+  default = 5432
+
+}
+
+
+variable "database_name" {
+
+  type    = string
+  default = "workshop"
+
+}
+
+
+variable "jwt_secret_arn" {
+
+  type        = string
+  description = "ARN da secret com o mesmo valor de security.jwt.secret do monolito, para a lambda assinar o JWT do cliente"
+
+}
+
+
 variable "backend_url" {
 
   type = string

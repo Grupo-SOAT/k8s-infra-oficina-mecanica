@@ -219,5 +219,13 @@ module "lambda" {
 
   database_password_secret_arn = module.database_password_secret.secret_arn
 
+  database_host = var.database_host
+
+  database_port = var.database_port
+
+  database_name = var.database_name
+
+  jwt_secret_arn = module.jwt_secret.secret_arn
+
   backend_url = var.backend_url
 }

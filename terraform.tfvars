@@ -24,3 +24,7 @@ default_user_password = ""
 backend_url = "http://localhost:8080"
 source_hash_code_lambda = ""
 lambda_s3_key = ""
+# TODO: preencher quando o RDS for provisionado no repo db-oficina-mecanica
+database_host = ""
+database_port = 5432
+database_name = "workshop"

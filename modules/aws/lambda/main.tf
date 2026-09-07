@@ -20,8 +20,12 @@ resource "aws_lambda_function" "this" {
 
   environment {
     variables = {
+      DATABASE_HOST                = var.database_host
+      DATABASE_PORT                = var.database_port
+      DATABASE_NAME                = var.database_name
       DATABASE_USER_SECRET_ARN     = var.database_user_secret_arn
       DATABASE_PASSWORD_SECRET_ARN = var.database_password_secret_arn
+      JWT_SECRET_ARN               = var.jwt_secret_arn
       BACKEND_URL                  = var.backend_url
     }
   }
