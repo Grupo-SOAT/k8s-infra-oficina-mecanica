@@ -86,7 +86,7 @@ jobs:
         run: terraform init
 
       - name: Destroy all Resources
-        run: terraform destroy -auto-approve -refresh=false
+        run: terraform destroy -auto-approve 
       
       - name: Destroy AWS secrets Brute force
         run: |
