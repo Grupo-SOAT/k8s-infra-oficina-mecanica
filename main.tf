@@ -24,7 +24,8 @@ module "aws_load_balancer_controller" {
   source = "./modules/helm/aws-load-balancer"
 
   depends_on = [
-    module.eks
+    module.eks,
+    module.namespaces
   ]
 
   cluster_name = module.eks.cluster_name
