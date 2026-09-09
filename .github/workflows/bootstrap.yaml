@@ -43,14 +43,30 @@ jobs:
               --region us-east-1
           fi
 
-      - name: Initialize Terraform
-        run: terraform init
-
-      - name: Validate Terraform
-        run: terraform validate
-
-      - name: Plan Terraform
-        run: terraform plan 
-
       - name: Create Lambda Code Bucket
-        run: terraform apply -auto-approve -target=module.s3_lambda_code 
+        run: |
+          if aws s3api head-bucket \
+            --bucket lambda-code-archive-oficina-mecanica 2>/dev/null
+          then
+            echo "Lambda Code bucket already exists."
+          else
+            echo "Creating Lambda code bucket..."
+
+            aws s3api create-bucket \
+              --bucket lambda-code-archive-oficina-mecanica \
+              --region us-east-1
+          fi
+      
+      - name: Create Kafka History Bucket
+        run: |
+          if aws s3api head-bucket \
+            --bucket oficina-mecanica-kafka-history 2>/dev/null
+          then
+            echo "Kafka History bucket already exists."
+          else
+            echo "Creating Kafka History state bucket..."
+
+            aws s3api create-bucket \
+              --bucket oficina-mecanica-kafka-history \
+              --region us-east-1
+          fi
