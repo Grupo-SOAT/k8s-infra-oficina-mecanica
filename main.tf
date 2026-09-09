@@ -48,20 +48,6 @@ module "argocd" {
   manifests_path       = var.git_manifests_path
 }
 
-module "s3_kafka_storage" {
-
-  source = "./modules/aws/s3"
-
-
-  bucket_name = var.bucket_name_kafka
-
-}
-
-module "s3_lambda_code" {
-  source = "./modules/aws/s3"
-
-  bucket_name = var.bucket_name_lambda
-}
 
 module "ecr_registry_mnl" {
 
@@ -193,10 +179,6 @@ module "api_gateway" {
 }
 
 module "lambda" {
-
-  depends_on = [
-    module.s3_lambda_code
-  ]
 
   source = "./modules/aws/lambda"
 
