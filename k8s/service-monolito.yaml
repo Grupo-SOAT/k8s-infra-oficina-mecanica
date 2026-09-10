@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: workshop-backend-service
   namespace: oficina-mecanica
+  labels:
+    app: workshop-backend
 spec:
   selector:
     app: workshop-backend
@@ -11,5 +13,6 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8080
+      name: http
 
   type: ClusterIP

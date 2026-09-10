@@ -26,6 +26,9 @@ spec:
             - containerPort: 8080
 
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xmx256m"
+
             - name: KAFKA_CLUSTERS_0_NAME
               value: workshop
 

@@ -6,7 +6,7 @@ metadata:
 spec:
   replicas: 1
 
-  selector: 
+  selector:
     matchLabels:
       app: workshop-backend
   template:
@@ -15,6 +15,22 @@ spec:
         app: workshop-backend
 
     spec:
+      initContainers:
+        - name: otel-agent
+          image: curlimages/curl:8.11.1
+          securityContext:
+            runAsUser: 0
+          command:
+            - "curl"
+            - "-f"
+            - "-L"
+            - "-o"
+            - "/otel/opentelemetry-javaagent.jar"
+            - "https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/2.31.1/opentelemetry-javaagent-2.31.1.jar"
+          volumeMounts:
+            - name: otel-agent
+              mountPath: /otel
+
       containers:
         - name: workshop-backend
 
@@ -23,7 +39,23 @@ spec:
           ports:
             - containerPort: 8080
 
+          volumeMounts:
+            - name: otel-agent
+              mountPath: /otel
+
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-javaagent:/otel/opentelemetry-javaagent.jar -Xmx512m"
+
+            - name: OTEL_SERVICE_NAME
+              value: "mnl-oficina-mecanica"
+
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://alloy.observability.svc.cluster.local:4318"
+
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=oficina-mecanica"
+
             - name: SPRING_DATASOURCE_URL
               valueFrom:
                 configMapKeyRef:
@@ -35,7 +67,7 @@ spec:
                 secretKeyRef:
                   name: app-secret
                   key: SPRING_DATASOURCE_USERNAME
-            
+
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -68,9 +100,28 @@ spec:
 
           resources:
             requests:
-              cpu: "400m"
-              memory: "512Mi"
+              cpu: "200m"
+              memory: "256Mi"
 
             limits:
-              cpu: "800m"
-              memory: "600Mi"
+              cpu: "600m"
+              memory: "768Mi"
+
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
+            initialDelaySeconds: 15
+            periodSeconds: 5
+
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            failureThreshold: 30
+            periodSeconds: 5
+
+      volumes:
+        - name: otel-agent
+          emptyDir: {}
