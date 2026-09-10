@@ -5,9 +5,10 @@ module "namespaces" {
     module.eks
   ]
 
-  namespaces = [ 
+  namespaces = [
     var.namespace_app,
-    var.namespace_argocd
+    var.namespace_argocd,
+    var.namespace_observability
   ]
 }
 
@@ -17,6 +18,35 @@ module "metrics_server" {
   depends_on = [
     module.eks
   ]
+}
+
+resource "kubernetes_secret" "grafana_admin" {
+  depends_on = [
+    module.namespaces
+  ]
+
+  metadata {
+    name      = "kps-grafana-admin"
+    namespace = var.namespace_observability
+  }
+
+  data = {
+    "admin-user"     = "admin"
+    "admin-password" = var.grafana_admin_password
+  }
+
+  type = "Opaque"
+}
+
+module "observability_stack" {
+  source = "./modules/helm/observability"
+
+  depends_on = [
+    module.namespaces,
+    kubernetes_secret.grafana_admin
+  ]
+
+  namespace = var.namespace_observability
 }
 
 
@@ -39,12 +69,15 @@ module "argocd" {
     module.namespaces
   ]
 
-	namespace = var.namespace_argocd
-  app_namespace   = var.namespace_app
+  namespace     = var.namespace_argocd
+  app_namespace = var.namespace_app
 
-  repo_url        = var.git_repo_url
+  repo_url               = var.git_repo_url
   target_revision_branch = var.git_target_revision_branch
-  manifests_path       = var.git_manifests_path
+  manifests_path         = var.git_manifests_path
+
+  observability_namespace = var.namespace_observability
+  observability_path      = "k8s/observability"
 }
 
 module "s3_kafka_storage" {
@@ -64,29 +97,29 @@ module "s3_lambda_code" {
 
 module "ecr_registry_mnl" {
 
-    source = "./modules/aws/ecr"
+  source = "./modules/aws/ecr"
 
-    repository_name = var.ecr_repository_name_mnl
+  repository_name = var.ecr_repository_name_mnl
 
-    image_tag_mutability = var.image_tag_mutability
+  image_tag_mutability = var.image_tag_mutability
 
-    scan_on_push = var.ecr_scan_on_push
+  scan_on_push = var.ecr_scan_on_push
 
-    tags = var.default_tags
+  tags = var.default_tags
 
 }
 
 module "ecr_registry_ms_orcamentos" {
 
-    source = "./modules/aws/ecr"
+  source = "./modules/aws/ecr"
 
-    repository_name = var.ecr_repository_name_ms_orcamentos
+  repository_name = var.ecr_repository_name_ms_orcamentos
 
-    image_tag_mutability = var.image_tag_mutability
+  image_tag_mutability = var.image_tag_mutability
 
-    scan_on_push = var.ecr_scan_on_push
+  scan_on_push = var.ecr_scan_on_push
 
-    tags = var.default_tags
+  tags = var.default_tags
 
 }
 
@@ -211,7 +244,7 @@ module "lambda" {
 
   lambda_s3_bucket = var.bucket_name_lambda
 
-  lambda_s3_key    = var.lambda_s3_key
+  lambda_s3_key = var.lambda_s3_key
 
   source_code_hash = var.source_hash_code_lambda
 

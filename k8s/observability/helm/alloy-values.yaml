@@ -1,7 +1,3 @@
-# Helm values for the alloy release (observability ns), captured from the live
-# validation cluster so the stack is reproducible from this repo.
-# Chart: grafana/alloy 1.12.1 (app v1.19.2)  |  repo: https://grafana.github.io/helm-charts
-# Reinstall: helm upgrade --install alloy grafana/alloy -n observability --version 1.12.1 -f alloy-values.yaml
 alloy:
   configMap:
     content: |

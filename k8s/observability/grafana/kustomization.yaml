@@ -1,9 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Gera os ConfigMaps do Grafana a partir dos arquivos fonte (sem duplicar conteudo em YAML).
-# Referencia: ~/plans/.../observability.md §10.2. Nomes estaveis (disableNameSuffixHash)
-# porque o kps-values.yaml monta `grafana-alerting` por nome (extraConfigmapMounts).
+# disableNameSuffixHash: o kps-values.yaml monta 'grafana-alerting' pelo nome.
 namespace: observability
 
 configMapGenerator:

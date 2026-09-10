@@ -1,7 +1,6 @@
-# Helm values for the tempo release (observability ns), captured from the live
-# validation cluster so the stack is reproducible from this repo.
-# Chart: grafana/tempo 1.24.4 (app 2.9.0)  |  repo: https://grafana.github.io/helm-charts
-# Reinstall: helm upgrade --install tempo grafana/tempo -n observability --version 1.24.4 -f tempo-values.yaml
+persistence:
+  enabled: true
+  size: 10Gi
 tempo:
   resources:
     limits:

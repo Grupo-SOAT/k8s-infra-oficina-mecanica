@@ -25,7 +25,7 @@ metadata:
   labels:
     release: kps
 spec:
-  jobName: healthcheck-app
+  jobName: healthcheck-app-liveness
   prober:
     url: blackbox-exporter.observability.svc.cluster.local:9115
     scheme: http
@@ -44,7 +44,7 @@ metadata:
   labels:
     release: kps
 spec:
-  jobName: healthcheck-app
+  jobName: healthcheck-app-readiness
   prober:
     url: blackbox-exporter.observability.svc.cluster.local:9115
     scheme: http
