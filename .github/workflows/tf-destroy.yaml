@@ -29,58 +29,91 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
       
-      - name: Destroy Bucket Objects
+      - name: Destroy Lambda S3 Bucket
         continue-on-error: true
         run: |
-          set -e
+          BUCKET="lambda-code-archive-oficina-mecanica"
 
-          BUCKETS=(
-            "lambda-code-archive-oficina-mecanica"
-            "oficina-mecanica-kafka-history"
-          )
+          echo "Limpando bucket: $BUCKET"
 
-          for BUCKET in "${BUCKETS[@]}"; do
-            echo "=========================================="
-            echo "Limpando bucket: $BUCKET"
-            echo "=========================================="
+          while true; do
+            VERSIONS=$(aws s3api list-object-versions \
+              --bucket "$BUCKET" \
+              --query 'Versions[].{Key:Key,VersionId:VersionId}' \
+              --output json)
 
-            while true; do
+            DELETE_MARKERS=$(aws s3api list-object-versions \
+              --bucket "$BUCKET" \
+              --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' \
+              --output json)
 
-              VERSIONS=$(aws s3api list-object-versions \
+            OBJECTS=$(jq -n \
+              --argjson versions "$VERSIONS" \
+              --argjson markers "$DELETE_MARKERS" \
+              '$versions + $markers')
+
+            COUNT=$(echo "$OBJECTS" | jq 'length')
+
+            if [ "$COUNT" -eq 0 ]; then
+              break
+            fi
+
+            echo "Excluindo $COUNT objetos/versões..."
+
+            echo "$OBJECTS" |
+              jq '{Objects: .[:1000], Quiet: true}' |
+              aws s3api delete-objects \
                 --bucket "$BUCKET" \
-                --query 'Versions[].{Key:Key,VersionId:VersionId}' \
-                --output json)
-
-              DELETE_MARKERS=$(aws s3api list-object-versions \
-                --bucket "$BUCKET" \
-                --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' \
-                --output json)
-
-              OBJECTS=$(jq -n \
-                --argjson versions "$VERSIONS" \
-                --argjson markers "$DELETE_MARKERS" \
-                '$versions + $markers')
-
-              COUNT=$(echo "$OBJECTS" | jq 'length')
-
-              if [ "$COUNT" -eq 0 ]; then
-                echo "Nenhum objeto restante."
-                break
-              fi
-
-              echo "Excluindo $COUNT objetos/versões..."
-
-              echo "$OBJECTS" |
-                jq '{Objects: .[:1000]}' |
-                aws s3api delete-objects \
-                  --bucket "$BUCKET" \
-                  --delete file:///dev/stdin
-
-            done
-
-            echo "Bucket $BUCKET limpo com sucesso."
-            echo
+                --delete file:///dev/stdin
           done
+
+          echo "Excluindo bucket..."
+          aws s3api delete-bucket --bucket "$BUCKET"
+
+          echo "Bucket $BUCKET excluído."
+
+      - name: Destroy Kafka History S3 Bucket
+        continue-on-error: true
+        run: |
+          BUCKET="oficina-mecanica-kafka-history"
+
+          echo "Limpando bucket: $BUCKET"
+
+          while true; do
+            VERSIONS=$(aws s3api list-object-versions \
+              --bucket "$BUCKET" \
+              --query 'Versions[].{Key:Key,VersionId:VersionId}' \
+              --output json)
+
+            DELETE_MARKERS=$(aws s3api list-object-versions \
+              --bucket "$BUCKET" \
+              --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' \
+              --output json)
+
+            OBJECTS=$(jq -n \
+              --argjson versions "$VERSIONS" \
+              --argjson markers "$DELETE_MARKERS" \
+              '$versions + $markers')
+
+            COUNT=$(echo "$OBJECTS" | jq 'length')
+
+            if [ "$COUNT" -eq 0 ]; then
+              break
+            fi
+
+            echo "Excluindo $COUNT objetos/versões..."
+
+            echo "$OBJECTS" |
+              jq '{Objects: .[:1000], Quiet: true}' |
+              aws s3api delete-objects \
+                --bucket "$BUCKET" \
+                --delete file:///dev/stdin
+          done
+
+          echo "Excluindo bucket..."
+          aws s3api delete-bucket --bucket "$BUCKET"
+
+          echo "Bucket $BUCKET excluído."
 
       - name: Initialize Terraform
         run: terraform init
