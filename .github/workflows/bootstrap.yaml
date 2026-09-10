@@ -32,14 +32,14 @@ jobs:
       - name: Create Terraform State Bucket
         run: |
           if aws s3api head-bucket \
-            --bucket grupo-soat-oficina-mecanica-terraform-state 2>/dev/null
+            --bucket grupo-soat-oficina-mecanica-1-terraform-state 2>/dev/null
           then
             echo "Terraform state bucket already exists."
           else
             echo "Creating Terraform state bucket..."
 
             aws s3api create-bucket \
-              --bucket grupo-soat-oficina-mecanica-terraform-state \
+              --bucket grupo-soat-oficina-mecanica-1-terraform-state \
               --region us-east-1
           fi
 
