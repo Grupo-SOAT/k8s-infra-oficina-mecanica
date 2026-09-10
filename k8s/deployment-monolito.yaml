@@ -31,6 +31,17 @@ spec:
             - name: otel-agent
               mountPath: /otel
 
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+              ephemeral-storage: "32Mi"
+
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+              ephemeral-storage: "64Mi"
+
       containers:
         - name: workshop-backend
 
