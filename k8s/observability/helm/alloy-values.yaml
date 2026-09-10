@@ -1,0 +1,55 @@
+# Helm values for the alloy release (observability ns), captured from the live
+# validation cluster so the stack is reproducible from this repo.
+# Chart: grafana/alloy 1.12.1 (app v1.19.2)  |  repo: https://grafana.github.io/helm-charts
+# Reinstall: helm upgrade --install alloy grafana/alloy -n observability --version 1.12.1 -f alloy-values.yaml
+alloy:
+  configMap:
+    content: |
+      otelcol.receiver.otlp "default" {
+        grpc { endpoint = "0.0.0.0:4317" }
+        http { endpoint = "0.0.0.0:4318" }
+        output {
+          traces = [otelcol.exporter.otlp.tempo.input]
+          metrics = [otelcol.exporter.prometheus.prom.input]
+          logs = [otelcol.exporter.otlphttp.loki.input]
+        }
+      }
+      otelcol.exporter.otlp "tempo" {
+        client {
+          endpoint = "tempo.observability.svc.cluster.local:4317"
+          tls { insecure = true }
+        }
+      }
+      otelcol.exporter.otlphttp "loki" {
+        client {
+          endpoint = "http://loki-gateway.observability.svc.cluster.local:80/otlp"
+        }
+      }
+      otelcol.exporter.prometheus "prom" {
+        forward_to = [prometheus.remote_write.prom.receiver]
+      }
+      prometheus.remote_write "prom" {
+        endpoint {
+          url = "http://kps-kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090/api/v1/write"
+        }
+      }
+    create: true
+  extraPorts:
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+controller:
+  type: daemonset
+service:
+  enabled: true
+  type: ClusterIP
