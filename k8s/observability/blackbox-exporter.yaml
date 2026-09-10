@@ -45,9 +45,11 @@ spec:
             requests:
               cpu: 50m
               memory: 32Mi
+              ephemeral-storage: 32Mi
             limits:
               cpu: 200m
               memory: 128Mi
+              ephemeral-storage: 64Mi
       volumes:
         - name: config
           configMap:

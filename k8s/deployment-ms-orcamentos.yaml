@@ -64,3 +64,14 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: APP_BUDGET_BASE_URL
+
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+              ephemeral-storage: "128Mi"
+
+            limits:
+              cpu: "600m"
+              memory: "768Mi"
+              ephemeral-storage: "256Mi"

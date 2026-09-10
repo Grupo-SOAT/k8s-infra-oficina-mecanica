@@ -34,3 +34,14 @@ spec:
 
             - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
               value: kafka-service:29092
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "64Mi"
+
+            limits:
+              cpu: "300m"
+              memory: "512Mi"
+              ephemeral-storage: "128Mi"
