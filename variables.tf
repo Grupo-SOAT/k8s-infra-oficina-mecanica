@@ -10,6 +10,10 @@ variable "namespace_argocd" {
   default = "argocd"
 }
 
+variable "namespace_observability" {
+  default = "observability"
+}
+
 variable "aws_region" {
   default = "us-east-1"
 }
@@ -98,6 +102,12 @@ variable "default_user_password" {
   type = string
   sensitive = true
   description = "senha padrao para os usuarios criados"
+}
+
+variable "grafana_admin_password" {
+  type = string
+  sensitive = true
+  description = "senha do usuário admin do Grafana (secret kps-grafana-admin)"
 }
 
 variable "project_name" {

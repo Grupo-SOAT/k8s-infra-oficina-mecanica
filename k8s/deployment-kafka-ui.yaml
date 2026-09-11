@@ -26,8 +26,22 @@ spec:
             - containerPort: 8080
 
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xmx256m"
+
             - name: KAFKA_CLUSTERS_0_NAME
               value: workshop
 
             - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
               value: kafka-service:29092
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "64Mi"
+
+            limits:
+              cpu: "300m"
+              memory: "512Mi"
+              ephemeral-storage: "128Mi"

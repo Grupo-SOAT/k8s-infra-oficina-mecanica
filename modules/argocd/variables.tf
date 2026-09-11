@@ -24,3 +24,15 @@ variable "manifests_path" {
   type        = string
   default     = "k8s"
 }
+
+variable "observability_namespace" {
+  description = "Namespace onde a stack de observabilidade será implantada"
+  type        = string
+  default     = "observability"
+}
+
+variable "observability_path" {
+  description = "Diretório do repositório com os manifests da observabilidade"
+  type        = string
+  default     = "k8s/observability"
+}

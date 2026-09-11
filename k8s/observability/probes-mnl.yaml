@@ -1,0 +1,56 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: mnl-health
+  namespace: observability
+  labels:
+    release: kps
+spec:
+  jobName: healthcheck-app
+  prober:
+    url: blackbox-exporter.observability.svc.cluster.local:9115
+    scheme: http
+  module: http_2xx
+  interval: 30s
+  targets:
+    staticConfig:
+      static:
+        - http://workshop-backend-service.oficina-mecanica.svc.cluster.local:80/actuator/health
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: mnl-liveness
+  namespace: observability
+  labels:
+    release: kps
+spec:
+  jobName: healthcheck-app-liveness
+  prober:
+    url: blackbox-exporter.observability.svc.cluster.local:9115
+    scheme: http
+  module: http_2xx
+  interval: 30s
+  targets:
+    staticConfig:
+      static:
+        - http://workshop-backend-service.oficina-mecanica.svc.cluster.local:80/actuator/health/liveness
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: mnl-readiness
+  namespace: observability
+  labels:
+    release: kps
+spec:
+  jobName: healthcheck-app-readiness
+  prober:
+    url: blackbox-exporter.observability.svc.cluster.local:9115
+    scheme: http
+  module: http_2xx
+  interval: 30s
+  targets:
+    staticConfig:
+      static:
+        - http://workshop-backend-service.oficina-mecanica.svc.cluster.local:80/actuator/health/readiness

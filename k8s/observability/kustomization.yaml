@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# helm/ fica de fora: são values consumidos pelo Terraform (modules/helm/observability).
+resources:
+  - blackbox-exporter.yaml
+  - kafka-exporter.yaml
+  - probes-mnl.yaml
+  - servicemonitor-monolito.yaml
+  - grafana
