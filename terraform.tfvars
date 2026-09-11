@@ -28,3 +28,4 @@ lambda_s3_key = ""
 database_host = ""
 database_port = 5432
 database_name = "workshop"
+grafana_admin_password = ""
