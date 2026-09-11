@@ -1,0 +1,103 @@
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      limits:
+        cpu: 200m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 100Mi
+  enabled: true
+grafana:
+  # A senha do Grafana vem do Secret kps-grafana-admin (admin-user/admin-password) e não entra no git.
+  admin:
+    existingSecret: kps-grafana-admin
+  # Loki/Tempo para o Explore; o Prometheus já vem do chart com uid "prometheus".
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki-gateway.observability.svc.cluster.local
+    - name: Tempo
+      type: tempo
+      uid: tempo
+      access: proxy
+      url: http://tempo.observability.svc.cluster.local:3200
+  service:
+    type: ClusterIP
+  testFramework:
+    enabled: false
+  resources:
+    limits:
+      cpu: 400m
+      memory: 600Mi
+    requests:
+      cpu: 100m
+      memory: 200Mi
+  # ConfigMap gerado pelo kustomize em k8s/observability/grafana.
+  extraConfigmapMounts:
+    - name: grafana-alerting
+      mountPath: /etc/grafana/provisioning/alerting
+      configMap: grafana-alerting
+      readOnly: true
+  # SMTP aponta para o mailpit.
+  "grafana.ini":
+    smtp:
+      enabled: true
+      host: mailpit-service.oficina-mecanica.svc.cluster.local:1025
+      from_address: alerts@oficina.local
+      from_name: Oficina Observabilidade
+      startTLS_policy: no-starttls
+  # O sidecar lê grafana-dashboard-observabilidade e usa grafana_folder como pasta.
+  sidecar:
+    dashboards:
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+kube-state-metrics:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+kubeControllerManager:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+nodeExporter:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+prometheus:
+  prometheusSpec:
+    enableRemoteWriteReceiver: true
+    probeSelectorNilUsesHelmValues: false
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+    retention: 48h
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+  serviceAccount:
+    create: true
+prometheusOperator:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi

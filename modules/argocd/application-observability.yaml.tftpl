@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: oficina-mecanica-observability
+  namespace: ${argocd_namespace}
+
+spec:
+  project: default
+
+  source:
+    repoURL: ${repo_url}
+    targetRevision: ${target_revision_branch}
+    path: ${observability_path}
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${observability_namespace}
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=false
+      - SkipDryRunOnMissingResource=true
