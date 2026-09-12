@@ -180,7 +180,7 @@ jobs:
       - name: Recover current Lambda artifact from S3 by LastModified
         if: github.event.action == 'db-deployed'
         run: |
-          BUCKET="lambda-code-archive-oficina-mecanica"
+          BUCKET="${{ vars.TF_LAMBDA_BUCKET }}"
 
           LAMBDA_KEY=$(aws s3api list-objects-v2 \
             --bucket "$BUCKET" \
