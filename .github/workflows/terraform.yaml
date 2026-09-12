@@ -70,9 +70,17 @@ jobs:
           )
 
           for SECRET in "${SECRETS[@]}"; do
-            aws secretsmanager delete-secret \
+            DELETED=$(aws secretsmanager describe-secret \
               --secret-id "$SECRET" \
-              --force-delete-without-recovery 2>/dev/null || true
+              --query "DeletedDate" \
+              --output text 2>/dev/null || true)
+
+            if [ -n "$DELETED" ] && [ "$DELETED" != "None" ]; then
+              echo "Force-deleting pending secret: $SECRET"
+              aws secretsmanager delete-secret \
+                --secret-id "$SECRET" \
+                --force-delete-without-recovery || true
+            fi
           done
 
       - name: Terraform Apply

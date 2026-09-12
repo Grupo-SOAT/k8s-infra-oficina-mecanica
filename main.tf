@@ -44,7 +44,8 @@ module "observability_stack" {
   depends_on = [
     module.namespaces,
     kubernetes_secret.grafana_admin,
-    module.aws_load_balancer_controller
+    module.aws_load_balancer_controller,
+    kubernetes_storage_class_v1.gp3
   ]
 
   namespace = var.namespace_observability
@@ -69,7 +70,8 @@ module "argocd" {
 
   depends_on = [
     module.namespaces,
-    module.aws_load_balancer_controller
+    module.aws_load_balancer_controller,
+    kubernetes_storage_class_v1.gp3
   ]
 
   namespace     = var.namespace_argocd

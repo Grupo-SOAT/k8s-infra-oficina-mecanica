@@ -124,30 +124,18 @@ jobs:
       - name: Destroy AWS secrets Brute force
         if: always()
         run: |
-          aws secretsmanager delete-secret \
-          --secret-id "oficina-mecanica/database-password" \
-          --force-delete-without-recovery
+          SECRETS=(
+            "oficina-mecanica/database-user"
+            "oficina-mecanica/database-password"
+            "oficina-mecanica/jwt-secret"
+            "oficina-mecanica/api-key-chatbot"
+            "oficina-mecanica/spring-datasource-password"
+            "oficina-mecanica/spring-datasource-username"
+            "oficina-mecanica/default-user-password"
+          )
 
-          aws secretsmanager delete-secret \
-            --secret-id "oficina-mecanica/spring-datasource-username" \
-            --force-delete-without-recovery
-
-          aws secretsmanager delete-secret \
-            --secret-id "oficina-mecanica/api-key-chatbot" \
-            --force-delete-without-recovery
-
-          aws secretsmanager delete-secret \
-            --secret-id "oficina-mecanica/default-user-password" \
-            --force-delete-without-recovery
-
-          aws secretsmanager delete-secret \
-            --secret-id "oficina-mecanica/spring-datasource-password" \
-            --force-delete-without-recovery
-
-          aws secretsmanager delete-secret \
-            --secret-id "oficina-mecanica/jwt-secret" \
-            --force-delete-without-recovery
-          
-          aws secretsmanager delete-secret \
-            --secret-id "oficina-mecanica/database-user" \
-            --force-delete-without-recovery
+          for SECRET in "${SECRETS[@]}"; do
+            aws secretsmanager delete-secret \
+              --secret-id "$SECRET" \
+              --force-delete-without-recovery 2>/dev/null || true
+          done

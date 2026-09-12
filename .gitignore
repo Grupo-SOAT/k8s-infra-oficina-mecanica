@@ -1,5 +1,4 @@
 scripts/
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
