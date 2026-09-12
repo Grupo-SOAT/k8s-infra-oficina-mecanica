@@ -109,6 +109,7 @@ jobs:
             done
 
       - name: Terraform Apply
+        if: github.event.action == 'lambda-updated'
         run: |
           terraform apply -auto-approve -var="database_user_secret=${{ secrets.POSTGRES_USER }}" -var="database_password_secret=${{ secrets.POSTGRES_PASSWORD }}" -var="jwt_secret=${{ secrets.JWT_SECRET }}" -var="api_key_chatbot=${{ secrets.API_KEY_CHATBOT }}" -var="spring_datasource_password=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" -var="spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" -var="source_hash_code_lambda=${{ github.event.client_payload.lambda_hash }}" -var="lambda_s3_key=${{ github.event.client_payload.lambda_key }}" -var="default_user_password=${{ secrets.DEFAULT_USER_PASSWORD }}" -var="grafana_admin_password=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}"
 
@@ -161,6 +162,7 @@ jobs:
           echo "TF_VAR_backend_url=http://$ALB_URL" >> "$GITHUB_ENV"
 
       - name: Terraform Apply Again
+        if: github.event.action == 'lambda-updated'
         run: |
           terraform apply -auto-approve -var="backend_url=http://$ALB_URL" -var="database_user_secret=${{ secrets.POSTGRES_USER }}" -var="database_password_secret=${{ secrets.POSTGRES_PASSWORD }}" -var="jwt_secret=${{ secrets.JWT_SECRET }}" -var="api_key_chatbot=${{ secrets.API_KEY_CHATBOT }}" -var="spring_datasource_password=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" -var="spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" -var="source_hash_code_lambda=${{ github.event.client_payload.lambda_hash }}" -var="lambda_s3_key=${{ github.event.client_payload.lambda_key }}" -var="default_user_password=${{ secrets.DEFAULT_USER_PASSWORD }}" -var="grafana_admin_password=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}"
 
@@ -175,8 +177,59 @@ jobs:
           echo "Database port received: ${{ github.event.client_payload.db_port }}"
           echo "Database name received: ${{ github.event.client_payload.db_name }}"
 
+      - name: Recover current Lambda artifact from Terraform state
+        if: github.event.action == 'db-deployed'
+        run: |
+          BUCKET="lambda-code-archive-oficina-mecanica"
+          FUNCTION_NAME="oficina-mecanica-validator"
+
+          echo "Obtendo S3 key atual da Lambda através do Terraform state..."
+
+          LAMBDA_KEY=$(terraform state show 'module.lambda.aws_lambda_function.this' \
+            | grep 's3_key' \
+            | head -1 \
+            | sed -E 's/.*s3_key[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/')
+
+          echo "S3 key encontrada no Terraform:"
+          echo "$LAMBDA_KEY"
+
+          if [ -z "$LAMBDA_KEY" ]; then
+            echo "ERRO: não foi possível obter o s3_key da Lambda através do Terraform state."
+            exit 1
+          fi
+
+          echo "Procurando o arquivo no bucket S3..."
+
+          aws s3api head-object \
+            --bucket "$BUCKET" \
+            --key "$LAMBDA_KEY" > /dev/null
+
+          if [ $? -ne 0 ]; then
+            echo "ERRO: o arquivo '$LAMBDA_KEY' não foi encontrado no bucket '$BUCKET'."
+            exit 1
+          fi
+
+          echo "Arquivo encontrado no S3."
+
+          echo "Baixando ZIP para calcular o hash..."
+
+          aws s3 cp \
+            "s3://$BUCKET/$LAMBDA_KEY" \
+            ./lambda-current.zip
+
+          echo "Calculando SHA-256 em Base64..."
+
+          LAMBDA_HASH=$(openssl dgst -sha256 -binary ./lambda-current.zip | base64 -w 0)
+
+          echo "Lambda S3 key: $LAMBDA_KEY"
+          echo "Lambda hash calculado com sucesso."
+
+          echo "TF_VAR_lambda_s3_key=$LAMBDA_KEY" >> "$GITHUB_ENV"
+          echo "TF_VAR_source_hash_code_lambda=$LAMBDA_HASH" >> "$GITHUB_ENV"
+
+          rm -f ./lambda-current.zip
 
       - name: Run Terraform Apply after DB deployed for lambda values
         if: github.event.action == 'db-deployed'
         run: |
-          terraform apply -auto-approve -var="database_host=${{ github.event.client_payload.db_host }}" -var="database_port=${{ github.event.client_payload.db_port }}" -var="database_name=${{ github.event.client_payload.db_name }}" -var="backend_url=http://$ALB_URL" -var="database_user_secret=${{ secrets.POSTGRES_USER }}" -var="database_password_secret=${{ secrets.POSTGRES_PASSWORD }}" -var="jwt_secret=${{ secrets.JWT_SECRET }}" -var="api_key_chatbot=${{ secrets.API_KEY_CHATBOT }}" -var="spring_datasource_password=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" -var="spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" -var="source_hash_code_lambda=${{ github.event.client_payload.lambda_hash }}" -var="lambda_s3_key=${{ github.event.client_payload.lambda_key }}" -var="default_user_password=${{ secrets.DEFAULT_USER_PASSWORD }}" -var="grafana_admin_password=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}"
+          terraform apply -auto-approve -var="database_host=${{ github.event.client_payload.db_host }}" -var="database_port=${{ github.event.client_payload.db_port }}" -var="database_name=${{ github.event.client_payload.db_name }}" -var="backend_url=http://$ALB_URL" -var="database_user_secret=${{ secrets.POSTGRES_USER }}" -var="database_password_secret=${{ secrets.POSTGRES_PASSWORD }}" -var="jwt_secret=${{ secrets.JWT_SECRET }}" -var="api_key_chatbot=${{ secrets.API_KEY_CHATBOT }}" -var="spring_datasource_password=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" -var="spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" -var="source_hash_code_lambda=$TF_VAR_source_hash_code_lambda" -var="lambda_s3_key=$TF_VAR_lambda_s3_key" -var="default_user_password=${{ secrets.DEFAULT_USER_PASSWORD }}" -var="grafana_admin_password=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}"
