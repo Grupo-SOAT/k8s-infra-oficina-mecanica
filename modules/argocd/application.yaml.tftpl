@@ -12,6 +12,8 @@ spec:
     repoURL: ${repo_url}
     targetRevision: ${target_revision_branch}
     path: ${manifests_path}
+    directory:
+      exclude: secret.yaml
 
   destination:
     server: https://kubernetes.default.svc
