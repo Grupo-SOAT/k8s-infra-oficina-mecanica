@@ -177,57 +177,26 @@ jobs:
           echo "Database port received: ${{ github.event.client_payload.db_port }}"
           echo "Database name received: ${{ github.event.client_payload.db_name }}"
 
-      - name: Recover current Lambda artifact from Terraform state
+      - name: Recover current Lambda artifact from S3 by LastModified
         if: github.event.action == 'db-deployed'
         run: |
           BUCKET="lambda-code-archive-oficina-mecanica"
-          FUNCTION_NAME="oficina-mecanica-validator"
 
-          echo "Obtendo S3 key atual da Lambda através do Terraform state..."
-
-          LAMBDA_KEY=$(terraform state show 'module.lambda.aws_lambda_function.this' \
-            | grep 's3_key' \
-            | head -1 \
-            | sed -E 's/.*s3_key[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/')
-
-          echo "S3 key encontrada no Terraform:"
-          echo "$LAMBDA_KEY"
-
-          if [ -z "$LAMBDA_KEY" ]; then
-            echo "ERRO: não foi possível obter o s3_key da Lambda através do Terraform state."
-            exit 1
-          fi
-
-          echo "Procurando o arquivo no bucket S3..."
-
-          aws s3api head-object \
+          LAMBDA_KEY=$(aws s3api list-objects-v2 \
             --bucket "$BUCKET" \
-            --key "$LAMBDA_KEY" > /dev/null
+            --query 'reverse(sort_by(Contents, &LastModified))[0].Key' \
+            --output text)
 
-          if [ $? -ne 0 ]; then
-            echo "ERRO: o arquivo '$LAMBDA_KEY' não foi encontrado no bucket '$BUCKET'."
-            exit 1
-          fi
+          echo "Lambda ZIP encontrado: $LAMBDA_KEY"
 
-          echo "Arquivo encontrado no S3."
+          aws s3 cp "s3://$BUCKET/$LAMBDA_KEY" ./lambda.zip
 
-          echo "Baixando ZIP para calcular o hash..."
+          LAMBDA_HASH=$(openssl dgst -sha256 -binary ./lambda.zip | base64 -w 0)
 
-          aws s3 cp \
-            "s3://$BUCKET/$LAMBDA_KEY" \
-            ./lambda-current.zip
-
-          echo "Calculando SHA-256 em Base64..."
-
-          LAMBDA_HASH=$(openssl dgst -sha256 -binary ./lambda-current.zip | base64 -w 0)
-
-          echo "Lambda S3 key: $LAMBDA_KEY"
-          echo "Lambda hash calculado com sucesso."
+          echo "Lambda hash recuperado."
 
           echo "TF_VAR_lambda_s3_key=$LAMBDA_KEY" >> "$GITHUB_ENV"
           echo "TF_VAR_source_hash_code_lambda=$LAMBDA_HASH" >> "$GITHUB_ENV"
-
-          rm -f ./lambda-current.zip
 
       - name: Run Terraform Apply after DB deployed for lambda values
         if: github.event.action == 'db-deployed'
