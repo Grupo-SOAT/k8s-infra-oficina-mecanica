@@ -126,17 +126,8 @@ jobs:
             --region us-east-1 \
             --name "$CLUSTER_NAME"
 
-      - name: Check EKS connection
-        run: |
-          echo "=== kubectl ==="
-          kubectl get nodes
-
-          echo "=== AWS EKS ==="
-          aws eks describe-cluster \
-            --name oficina-mecanica-cluster \
-            --region us-east-1 \
-            --query 'cluster.endpoint' \
-            --output text
+      - name: Terraform Destroy Plan
+        run: terraform plan -destroy
 
       - name: Destroy all Resources
         run: terraform destroy -auto-approve 
