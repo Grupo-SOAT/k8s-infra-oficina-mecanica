@@ -70,6 +70,12 @@ spec:
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "service.namespace=oficina-mecanica"
 
+            - name: SPRING_PROFILES_ACTIVE
+              value: "local"
+
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "update"
+
             - name: SPRING_DATASOURCE_URL
               valueFrom:
                 configMapKeyRef:
