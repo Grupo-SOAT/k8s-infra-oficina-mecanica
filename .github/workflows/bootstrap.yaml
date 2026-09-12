@@ -31,42 +31,48 @@ jobs:
 
       - name: Create Terraform State Bucket
         run: |
+          BUCKET="${{ vars.TF_STATE_BUCKET }}"
+
           if aws s3api head-bucket \
-            --bucket grupo-soat-oficina-mecanica-terraform-state 2>/dev/null
+            --bucket "$BUCKET" 2>/dev/null
           then
             echo "Terraform state bucket already exists."
           else
             echo "Creating Terraform state bucket..."
 
             aws s3api create-bucket \
-              --bucket grupo-soat-oficina-mecanica-terraform-state \
+              --bucket "$BUCKET" \
               --region us-east-1
           fi
 
       - name: Create Lambda Code Bucket
         run: |
+          BUCKET="${{ vars.TF_LAMBDA_BUCKET }}"
+
           if aws s3api head-bucket \
-            --bucket lambda-code-archive-oficina-mecanica 2>/dev/null
+            --bucket "$BUCKET" 2>/dev/null
           then
             echo "Lambda Code bucket already exists."
           else
             echo "Creating Lambda code bucket..."
 
             aws s3api create-bucket \
-              --bucket lambda-code-archive-oficina-mecanica \
+              --bucket "$BUCKET" \
               --region us-east-1
           fi
       
       - name: Create Kafka History Bucket
         run: |
+          BUCKET="${{ vars.TF_KAFKA_BUCKET }}"
+
           if aws s3api head-bucket \
-            --bucket oficina-mecanica-kafka-history 2>/dev/null
+            --bucket "$BUCKET" 2>/dev/null
           then
             echo "Kafka History bucket already exists."
           else
             echo "Creating Kafka History state bucket..."
 
             aws s3api create-bucket \
-              --bucket oficina-mecanica-kafka-history \
+              --bucket "$BUCKET" \
               --region us-east-1
           fi

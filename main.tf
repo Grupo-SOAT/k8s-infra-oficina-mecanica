@@ -38,6 +38,27 @@ resource "kubernetes_secret" "grafana_admin" {
   type = "Opaque"
 }
 
+resource "kubernetes_secret_v1" "app_secret" {
+  metadata {
+    name      = "app-secret"
+    namespace = var.namespace_app
+  }
+
+  data = {
+    "JWT_SECRET"                 = var.jwt_secret
+    "API_KEY_CHATBOT"            = var.api_key_chatbot
+    "SPRING_DATASOURCE_PASSWORD" = var.spring_datasource_password
+    "POSTGRES_PASSWORD"          = var.database_password_secret
+    "DEFAULT_USER_PASSWORD"      = var.default_user_password
+    "SPRING_DATASOURCE_USERNAME" = var.spring_datasource_username
+    "POSTGRES_USER"              = var.database_user_secret
+  }
+
+  type = "Opaque"
+
+  depends_on = [module.namespaces]
+}
+
 resource "kubernetes_config_map_v1" "grafana_alerting" {
   metadata {
     name      = "grafana-alerting"
@@ -110,7 +131,8 @@ module "argocd" {
   depends_on = [
     module.namespaces,
     module.aws_load_balancer_controller,
-    kubernetes_storage_class_v1.gp3
+    kubernetes_storage_class_v1.gp3,
+    kubernetes_secret_v1.app_secret
   ]
 
   namespace     = var.namespace_argocd

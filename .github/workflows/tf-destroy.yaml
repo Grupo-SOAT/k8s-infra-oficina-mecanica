@@ -32,7 +32,7 @@ jobs:
       - name: Destroy Lambda S3 Bucket
         continue-on-error: true
         run: |
-          BUCKET="lambda-code-archive-oficina-mecanica"
+          BUCKET="${{ vars.TF_LAMBDA_BUCKET }}"
 
           echo "Limpando bucket: $BUCKET"
 
@@ -75,7 +75,7 @@ jobs:
       - name: Destroy Kafka History S3 Bucket
         continue-on-error: true
         run: |
-          BUCKET="oficina-mecanica-kafka-history"
+          BUCKET="${{ vars.TF_KAFKA_BUCKET }}"
 
           echo "Limpando bucket: $BUCKET"
 
@@ -116,7 +116,7 @@ jobs:
           echo "Bucket $BUCKET excluído."
 
       - name: Initialize Terraform
-        run: terraform init
+        run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
 
       - name: Destroy all Resources
         run: terraform destroy -auto-approve 

@@ -40,7 +40,10 @@ jobs:
           echo "TF_VAR_api_key_chatbot=${{ secrets.API_KEY_CHATBOT }}" >> "$GITHUB_ENV"
           echo "TF_VAR_spring_datasource_password=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" >> "$GITHUB_ENV"
           echo "TF_VAR_spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" >> "$GITHUB_ENV"
-          echo "TF_VAR_default-user-password=${{ secrets.DEFAULT_USER_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_default_user_password=${{ secrets.DEFAULT_USER_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_aws_lab_role=${{ vars.TF_AWS_LAB_ROLE }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_bucket_name_lambda=${{ vars.TF_LAMBDA_BUCKET }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_bucket_name_kafka=${{ vars.TF_KAFKA_BUCKET }}" >> "$GITHUB_ENV"
 
       - name: Set Lambda Variables
         if: github.event.action == 'lambda-updated'
@@ -49,7 +52,7 @@ jobs:
           echo "TF_VAR_lambda_s3_key=${{ github.event.client_payload.lambda_key }}" >> "$GITHUB_ENV"
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
 
       - name: Terraform Validate
         run: terraform validate
