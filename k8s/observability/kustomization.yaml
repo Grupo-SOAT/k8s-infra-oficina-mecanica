@@ -7,4 +7,3 @@ resources:
   - kafka-exporter.yaml
   - probes-mnl.yaml
   - servicemonitor-monolito.yaml
-  - grafana

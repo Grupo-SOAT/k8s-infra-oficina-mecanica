@@ -6,6 +6,8 @@ resource "helm_release" "kps" {
   version    = "88.6.1"
   timeout    = 900
 
+  cleanup_on_fail = true
+
   values = [file("${path.root}/k8s/observability/helm/kps-values.yaml")]
 }
 
@@ -16,6 +18,8 @@ resource "helm_release" "loki" {
   chart      = "loki"
   version    = "7.3.0"
   timeout    = 600
+
+  cleanup_on_fail = true
 
   values = [file("${path.root}/k8s/observability/helm/loki-values.yaml")]
 }
@@ -28,6 +32,8 @@ resource "helm_release" "tempo" {
   version    = "1.24.4"
   timeout    = 600
 
+  cleanup_on_fail = true
+
   values = [file("${path.root}/k8s/observability/helm/tempo-values.yaml")]
 }
 
@@ -38,6 +44,8 @@ resource "helm_release" "alloy" {
   chart      = "alloy"
   version    = "1.12.1"
   timeout    = 600
+
+  cleanup_on_fail = true
 
   depends_on = [helm_release.kps]
 
