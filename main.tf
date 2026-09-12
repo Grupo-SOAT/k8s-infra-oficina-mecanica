@@ -193,6 +193,26 @@ module "eks" {
 
 }
 
+resource "aws_ec2_tag" "subnet_elb_role" {
+  for_each = toset(module.network.subnet_ids)
+
+  resource_id = each.value
+  key         = "kubernetes.io/role/elb"
+  value       = "1"
+
+  depends_on = [module.network]
+}
+
+resource "aws_ec2_tag" "subnet_cluster" {
+  for_each = toset(module.network.subnet_ids)
+
+  resource_id = each.value
+  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
+  value       = "shared"
+
+  depends_on = [module.eks]
+}
+
 resource "kubernetes_storage_class_v1" "gp3" {
   metadata {
     name = "gp3"
