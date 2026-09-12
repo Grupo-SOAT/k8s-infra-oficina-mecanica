@@ -6,6 +6,8 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   timeout = 600
 
+  cleanup_on_fail = true
+
   set = [
     {
       name  = "clusterName"

@@ -7,6 +7,8 @@ resource "helm_release" "argocd" {
 
   timeout = 600
 
+  cleanup_on_fail = true
+
   namespace = var.namespace
 }
 

@@ -38,6 +38,42 @@ resource "kubernetes_secret" "grafana_admin" {
   type = "Opaque"
 }
 
+resource "kubernetes_config_map_v1" "grafana_alerting" {
+  metadata {
+    name      = "grafana-alerting"
+    namespace = var.namespace_observability
+  }
+
+  data = {
+    "alert_rules.yaml"           = file("${path.root}/k8s/observability/grafana/provisioning/alerting/alert_rules.yaml")
+    "contact_points.yaml"        = file("${path.root}/k8s/observability/grafana/provisioning/alerting/contact_points.yaml")
+    "notification_policies.yaml" = file("${path.root}/k8s/observability/grafana/provisioning/alerting/notification_policies.yaml")
+  }
+
+  depends_on = [module.namespaces]
+}
+
+resource "kubernetes_config_map_v1" "grafana_dashboard_observabilidade" {
+  metadata {
+    name      = "grafana-dashboard-observabilidade"
+    namespace = var.namespace_observability
+
+    labels = {
+      grafana_dashboard = "1"
+    }
+
+    annotations = {
+      grafana_folder = "Observabilidade"
+    }
+  }
+
+  data = {
+    "observabilidade.json" = file("${path.root}/k8s/observability/grafana/provisioning/dashboards/observabilidade.json")
+  }
+
+  depends_on = [module.namespaces]
+}
+
 module "observability_stack" {
   source = "./modules/helm/observability"
 
@@ -45,7 +81,10 @@ module "observability_stack" {
     module.namespaces,
     kubernetes_secret.grafana_admin,
     module.aws_load_balancer_controller,
-    kubernetes_storage_class_v1.gp3
+    kubernetes_storage_class_v1.gp3,
+    module.argocd,
+    kubernetes_config_map_v1.grafana_alerting,
+    kubernetes_config_map_v1.grafana_dashboard_observabilidade
   ]
 
   namespace = var.namespace_observability
