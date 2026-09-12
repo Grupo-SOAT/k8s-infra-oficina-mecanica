@@ -1,5 +1,12 @@
 backend:
   replicas: 0
+chunksCache:
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
 deploymentMode: SingleBinary
 loki:
   auth_enabled: false
@@ -23,8 +30,17 @@ monitoring:
     enabled: false
   selfMonitoring:
     enabled: false
+lokiCanary:
+  enabled: false
 read:
   replicas: 0
+resultsCache:
+  resources:
+    limits:
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
 simpleScalable:
   replicas: 0
 singleBinary:

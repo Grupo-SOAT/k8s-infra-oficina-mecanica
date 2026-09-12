@@ -122,6 +122,7 @@ jobs:
         run: terraform destroy -auto-approve 
       
       - name: Destroy AWS secrets Brute force
+        if: always()
         run: |
           aws secretsmanager delete-secret \
           --secret-id "oficina-mecanica/database-password" \

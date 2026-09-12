@@ -43,7 +43,8 @@ module "observability_stack" {
 
   depends_on = [
     module.namespaces,
-    kubernetes_secret.grafana_admin
+    kubernetes_secret.grafana_admin,
+    module.aws_load_balancer_controller
   ]
 
   namespace = var.namespace_observability
@@ -67,7 +68,8 @@ module "argocd" {
   source = "./modules/argocd"
 
   depends_on = [
-    module.namespaces
+    module.namespaces,
+    module.aws_load_balancer_controller
   ]
 
   namespace     = var.namespace_argocd
@@ -126,6 +128,27 @@ module "eks" {
 
   cluster_name = var.cluster_name
 
+}
+
+resource "kubernetes_storage_class_v1" "gp3" {
+  metadata {
+    name = "gp3"
+
+    annotations = {
+      "storageclass.kubernetes.io/is-default-class" = "true"
+    }
+  }
+
+  storage_provisioner    = "ebs.csi.aws.com"
+  volume_binding_mode    = "WaitForFirstConsumer"
+  allow_volume_expansion = true
+
+  parameters = {
+    type   = "gp3"
+    fsType = "ext4"
+  }
+
+  depends_on = [module.eks]
 }
 
 module "database_user_secret" {
