@@ -54,6 +54,9 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      - name: Terraform Apply Cluster
+        run: terraform apply -auto-approve -target=module.eks
+
       - name: Terraform Plan
         run: terraform plan
 
