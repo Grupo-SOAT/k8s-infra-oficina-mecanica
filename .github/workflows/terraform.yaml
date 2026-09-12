@@ -128,7 +128,7 @@ jobs:
         run: |
           echo "Aguardando o ALB..."
 
-          for i in {1..30}; do
+          for i in {1..10}; do
 
             ALB_URL=$(kubectl get ingress workshop-backend-ingress \
               -n oficina-mecanica \
