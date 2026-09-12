@@ -115,6 +115,9 @@ jobs:
 
           echo "Bucket $BUCKET excluído."
 
+      - name: Initialize Terraform
+        run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+
       - name: Configure kubectl
         run: |
           CLUSTER_NAME=$(terraform output -raw cluster_name)
@@ -122,9 +125,6 @@ jobs:
           aws eks update-kubeconfig \
             --region us-east-1 \
             --name "$CLUSTER_NAME"
-
-      - name: Initialize Terraform
-        run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
 
       - name: Destroy all Resources
         run: terraform destroy -auto-approve 
