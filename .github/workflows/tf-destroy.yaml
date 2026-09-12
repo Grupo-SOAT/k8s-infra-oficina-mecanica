@@ -115,6 +115,14 @@ jobs:
 
           echo "Bucket $BUCKET excluído."
 
+      - name: Configure kubectl
+        run: |
+          CLUSTER_NAME=$(terraform output -raw cluster_name)
+
+          aws eks update-kubeconfig \
+            --region us-east-1 \
+            --name "$CLUSTER_NAME"
+
       - name: Initialize Terraform
         run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
 
