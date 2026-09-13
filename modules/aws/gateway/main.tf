@@ -61,7 +61,7 @@ resource "aws_apigatewayv2_stage" "default" {
 }
 
 resource "aws_lambda_permission" "api_gateway" {
-  statement_id = "AllowApiGatewayInvoke"
+  statement_id = var.permission_statement_id
 
   action = "lambda:InvokeFunction"
 

@@ -1,36 +1,5 @@
-data "aws_caller_identity" "current" {}
-
-data "archive_file" "dummy_lambda" {
-  type        = "zip"
-  source_file = "${path.module}/fixtures/dummy_handler.py"
-  output_path = "${path.module}/.build/dummy_handler.zip"
-}
-
-locals {
-  # AWS Academy recria a conta a cada reset de sessão do lab, então não dá
-  # pra fixar o account id da LabRole: resolve pela conta autenticada no momento.
-  aws_lab_role_arn = var.aws_lab_role_arn != "" ? var.aws_lab_role_arn : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/voclabs/LabRole"
-}
-
-resource "aws_lambda_function" "dummy" {
-  function_name = var.dummy_lambda_name
-
-  role = local.aws_lab_role_arn
-
-  runtime = "python3.12"
-  handler = "dummy_handler.handler"
-
-  filename         = data.archive_file.dummy_lambda.output_path
-  source_code_hash = data.archive_file.dummy_lambda.output_base64sha256
-
-  timeout     = 10
-  memory_size = 128
-
-  tags = {
-    ManagedBy = "Terraform"
-    Project   = var.project_name
-    Purpose   = "gateway-test"
-  }
+data "aws_lambda_function" "validator" {
+  function_name = var.lambda_function_name
 }
 
 module "gateway_under_test" {
@@ -40,9 +9,13 @@ module "gateway_under_test" {
 
   project_name = var.project_name
 
-  lambda_function_name = aws_lambda_function.dummy.function_name
+  lambda_function_name = data.aws_lambda_function.validator.function_name
 
-  lambda_arn = aws_lambda_function.dummy.arn
+  lambda_arn = data.aws_lambda_function.validator.arn
 
   resources = var.resources
+
+  # statement_id distinto do usado pela API Gateway de produção (main.tf da raiz),
+  # já que as duas apontam para a mesma Lambda "oficina-mecanica-validator".
+  permission_statement_id = "AllowApiGatewayInvokeGatewayTest"
 }

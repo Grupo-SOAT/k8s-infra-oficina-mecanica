@@ -34,3 +34,9 @@ variable "throttling_burst_limit" {
   description = "Limite de requisições em rajada, aplicado por rota no stage padrão"
   default     = 100
 }
+
+variable "permission_statement_id" {
+  type        = string
+  description = "statement_id da permissão de invocação concedida ao API Gateway na Lambda. Precisa ser único por Lambda: se mais de uma API (ex: produção e um harness de teste) apontar para a mesma função, cada uma precisa de um statement_id diferente para não conflitar."
+  default     = "AllowApiGatewayInvoke"
+}

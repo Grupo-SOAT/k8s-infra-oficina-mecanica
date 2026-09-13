@@ -13,7 +13,7 @@ output "routes" {
   value       = module.gateway_under_test.routes
 }
 
-output "dummy_lambda_name" {
-  description = "Nome do Lambda dummy criado só para este teste"
-  value       = aws_lambda_function.dummy.function_name
+output "lambda_arn" {
+  description = "ARN da Lambda validator real, lida via data source e usada como integração"
+  value       = data.aws_lambda_function.validator.arn
 }
