@@ -53,29 +53,6 @@ jobs:
             aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
           fi
 
-      - name: Discover Latest Lambda Artifact
-        run: |
-          BUCKET="lambda-code-archive-oficina-mecanica2"
-
-          LAMBDA_KEY=$(aws s3api list-objects-v2 \
-            --bucket "$BUCKET" \
-            --query 'reverse(sort_by(Contents, &LastModified))[0].Key' \
-            --output text)
-
-          if [ -z "$LAMBDA_KEY" ] || [ "$LAMBDA_KEY" == "None" ]; then
-            echo "Nenhum artefato encontrado em s3://$BUCKET. Rode a pipeline da Lambda (repositório da Lambda) antes de testar o gateway."
-            exit 1
-          fi
-
-          echo "Artefato encontrado: $LAMBDA_KEY"
-
-          aws s3 cp "s3://$BUCKET/$LAMBDA_KEY" ./lambda-artifact
-
-          LAMBDA_HASH=$(openssl dgst -sha256 -binary ./lambda-artifact | base64 -w 0)
-
-          echo "TF_VAR_lambda_s3_key=$LAMBDA_KEY" >> "$GITHUB_ENV"
-          echo "TF_VAR_source_code_hash=$LAMBDA_HASH" >> "$GITHUB_ENV"
-
       - name: Terraform Init
         run: terraform init
 
@@ -89,8 +66,10 @@ jobs:
       - name: Smoke Test
         if: ${{ inputs.action == 'apply' }}
         run: |
-          URL=$(terraform output -raw test_url)
-          echo "Testando: $URL"
+          URL=$(terraform output -raw api_endpoint)
+          echo "Testando domínio do gateway: $URL"
+          # Sem Lambda integrada não há rotas, então 404 aqui já confirma que
+          # a API Gateway e seu domínio estão de pé e respondendo.
           curl -sS -i "$URL"
 
       - name: Terraform Destroy

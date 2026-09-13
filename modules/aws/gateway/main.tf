@@ -9,7 +9,23 @@ resource "aws_apigatewayv2_api" "this" {
 }
 
 
+locals {
+  create_lambda_integration = var.lambda_arn != ""
+
+  # Para cada recurso do contrato, expõe a rota "de coleção" (ex: /clientes)
+  # e a rota "de subcaminho" (ex: /clientes/{proxy+}, cobre /clientes/123 etc).
+  # Sem Lambda não há integração pra apontar, então nenhuma rota é criada.
+  route_keys = local.create_lambda_integration ? toset(flatten([
+    for resource in var.resources : [
+      "ANY /${resource}",
+      "ANY /${resource}/{proxy+}",
+    ]
+  ])) : toset([])
+}
+
 resource "aws_apigatewayv2_integration" "lambda" {
+  count = local.create_lambda_integration ? 1 : 0
+
   api_id = aws_apigatewayv2_api.this.id
 
   integration_type   = "AWS_PROXY"
@@ -20,17 +36,6 @@ resource "aws_apigatewayv2_integration" "lambda" {
 }
 
 
-locals {
-  # Para cada recurso do contrato, expõe a rota "de coleção" (ex: /clientes)
-  # e a rota "de subcaminho" (ex: /clientes/{proxy+}, cobre /clientes/123 etc).
-  route_keys = toset(flatten([
-    for resource in var.resources : [
-      "ANY /${resource}",
-      "ANY /${resource}/{proxy+}",
-    ]
-  ]))
-}
-
 resource "aws_apigatewayv2_route" "this" {
   for_each = local.route_keys
 
@@ -38,7 +43,7 @@ resource "aws_apigatewayv2_route" "this" {
 
   route_key = each.value
 
-  target = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  target = "integrations/${aws_apigatewayv2_integration.lambda[0].id}"
 }
 
 
@@ -61,6 +66,8 @@ resource "aws_apigatewayv2_stage" "default" {
 }
 
 resource "aws_lambda_permission" "api_gateway" {
+  count = local.create_lambda_integration ? 1 : 0
+
   statement_id = var.permission_statement_id
 
   action = "lambda:InvokeFunction"
