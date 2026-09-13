@@ -315,6 +315,8 @@ module "api_gateway" {
 
   lambda_arn = module.lambda.function_arn
 
+  resources = var.gateway_resources
+
 }
 
 module "lambda" {
