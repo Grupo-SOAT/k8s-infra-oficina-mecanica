@@ -640,40 +640,22 @@ A intenção é manter credenciais fora dos manifests da aplicação e centraliz
 
 # λ AWS Lambda
 
-A infraestrutura também provisiona a Lambda:
+A infraestrutura provisiona **duas** funções (mesmo artefato Java no S3, handlers diferentes):
 
-```text
-oficina-mecanica-validator
-```
+| Function                          | Handler                                                   | Papel                                    |
+| ---------------------------------- | ---------------------------------------------------------- | ----------------------------------------- |
+| `oficina-mecanica-validator`       | `br.com.oficina.lambda.ValidatorHandler::handleRequest`    | Valida CPF, consulta `owners`, emite JWT |
+| `oficina-mecanica-jwt-authorizer`  | `br.com.oficina.lambda.AuthorizerHandler::handleRequest`   | Lambda Authorizer: valida o JWT nas rotas de negócio |
 
-utilizando:
+Ambas rodam em `Java 21` e usam o mesmo artefato (`lambda_s3_key`/`source_hash_code_lambda`), já que é um único build Maven com duas classes de entrada.
 
-```text
-Java 21
-```
+O código das funções é obtido através de um artefato armazenado no Amazon S3.
 
-e handler:
-
-```text
-br.com.oficina.lambda.ValidatorHandler::handleRequest
-```
-
-O código da função é obtido através de um artefato armazenado no Amazon S3.
-
-A Lambda recebe configurações relacionadas a:
-
-* credenciais do banco;
-* host;
-* porta;
-* nome do banco;
-* segredo JWT;
-* URL do backend.
+A Lambda `validator` recebe configurações relacionadas a: credenciais do banco, host, porta, nome do banco, segredo JWT e URL do backend. A `jwt-authorizer` só usa o segredo JWT (as demais variáveis são herdadas do mesmo módulo Terraform, mas não são lidas por ela).
 
 ---
 
 # 🌐 API Gateway
-
-O API Gateway é configurado para utilizar a Lambda como integração.
 
 O módulo Terraform:
 
@@ -681,35 +663,25 @@ O módulo Terraform:
 modules/aws/gateway
 ```
 
-cria a API:
+cria a API `oficina-mecanica-api` com duas famílias de rota:
 
-```text
-oficina-mecanica-api
-```
-
-e associa a função:
-
-```text
-oficina-mecanica-validator
-```
+* **`/auth` e `/auth/{proxy+}`** → integração `AWS_PROXY` com a lambda `oficina-mecanica-validator` (sem authorizer - é aqui que o cliente pega o JWT);
+* **rotas de negócio** (`var.gateway_resources`, ex.: `clientes`, `veiculos`, `ordens-servico`) → integração `HTTP_PROXY` **direto para o backend** (`var.backend_url`), protegidas pelo **Lambda Authorizer** (`oficina-mecanica-jwt-authorizer`).
 
 O fluxo principal é:
 
 ```text
 Cliente
    │
-   ▼
-API Gateway
+   ├── POST /auth/cpf ──────────────► Lambda validator ──► PostgreSQL (owners)
+   │                                        │
+   │                                    emite JWT
    │
-   ▼
-Lambda
-   │
-   ├── Autenticação / validação
-   │
-   └── Proxy
-          │
-          ▼
-       Backend EKS
+   └── demais rotas (com o JWT) ────► API Gateway
+                                          │
+                                          ├──► Lambda authorizer (valida o JWT)
+                                          │
+                                          └──► Backend EKS (HTTP_PROXY, sem passar pela Lambda)
 ```
 
 ---
@@ -1128,3 +1100,20 @@ O projeto demonstra a evolução de uma aplicação de oficina mecânica para um
 Este projeto está licenciado sob a licença **MIT**.
 
 Consulte o arquivo [`LICENSE`](./LICENSE) para mais informações.
+
+## Revisão da migração para Authorizer
+
+- Apenas POST /auth/cpf é enviado à ValidatorHandler. POST /auth/login,
+  /auth/chatbot e /auth/change-password continuam no monólito.
+- Rotas protegidas usam os nomes reais da API: owners, vehicles,
+  service-orders, catalog, supplies, suppliers, purchase-orders, users e reporting.
+- O cache do authorizer fica desativado por padrão; a expiração é conferida
+  a cada chamada. O monólito continua validando JWT, papéis e dono do recurso.
+- O ZIP de deploy contém somente lib/lambda-code.jar, com os dois handlers.
+- Publicar o novo artefato antes de aplicar a infraestrutura que referencia
+  AuthorizerHandler; implantar também o controle de dono no monólito.
+- Não foi validado deploy na AWS nesta revisão. Rede entre Lambda e RDS
+  privado permanece pendente por decisão do grupo. Terraform validate não
+  comprova conectividade, permissões IAM nem disponibilidade dos serviços.
+- A consulta atual de cliente verifica existência, não status ativo/inativo:
+  esse requisito ainda depende da evolução do modelo owners.
