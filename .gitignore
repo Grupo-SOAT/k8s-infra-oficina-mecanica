@@ -2,3 +2,4 @@ scripts/
 .terraform/
 *.tfstate
 *.tfstate.*
+modules/aws/gateway/test/.build/

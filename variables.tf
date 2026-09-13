@@ -148,3 +148,9 @@ variable "database_name" {
   type    = string
   default = "workshop"
 }
+
+variable "gateway_resources" {
+  type        = list(string)
+  description = "Contrato de rotas do API Gateway: um item por recurso do monólito (ex: clientes, veiculos). Ajuste esta lista conforme os endpoints reais do monólito."
+  default     = ["auth", "clientes", "veiculos", "ordens-servico", "servicos", "orcamentos"]
+}
