@@ -76,6 +76,14 @@ jobs:
           echo "Testando rota fictícia com retorno mockado: $MOCK_URL"
           curl -sS -i "$MOCK_URL"
 
+          echo ""
+          echo "Testando rotas do contrato real (openapi/):"
+          for URL in $(terraform output -json sample_contract_urls | jq -r '.[]'); do
+            echo ""
+            echo "-> $URL"
+            curl -sS -i "$URL"
+          done
+
       - name: Terraform Destroy
         if: ${{ inputs.action == 'destroy' }}
         run: terraform destroy -auto-approve
