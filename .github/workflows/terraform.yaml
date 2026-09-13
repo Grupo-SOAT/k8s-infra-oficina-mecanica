@@ -202,3 +202,45 @@ jobs:
         if: github.event.action == 'db-deployed'
         run: |
           terraform apply -auto-approve -var="database_host=${{ github.event.client_payload.db_host }}" -var="database_port=${{ github.event.client_payload.db_port }}" -var="database_name=${{ github.event.client_payload.db_name }}" -var="backend_url=http://$ALB_URL" -var="database_user_secret=${{ secrets.POSTGRES_USER }}" -var="database_password_secret=${{ secrets.POSTGRES_PASSWORD }}" -var="jwt_secret=${{ secrets.JWT_SECRET }}" -var="api_key_chatbot=${{ secrets.API_KEY_CHATBOT }}" -var="spring_datasource_password=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" -var="spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" -var="source_hash_code_lambda=$TF_VAR_source_hash_code_lambda" -var="lambda_s3_key=$TF_VAR_lambda_s3_key" -var="default_user_password=${{ secrets.DEFAULT_USER_PASSWORD }}" -var="grafana_admin_password=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}"
+
+      - name: Update DB URL and DB name on configmap manifest
+        if: github.event.action == 'db-deployed'
+        env:
+          DB_HOST: ${{ github.event.client_payload.db_host }}
+          DB_PORT: ${{ github.event.client_payload.db_port }}
+          DB_NAME: ${{ github.event.client_payload.db_name }}
+        run: |
+          set -e
+
+          echo "Clonando repositório GitOps..."
+
+          git clone https://x-access-token:${{ secrets.PAT_REPO_INFRA_LAMBDA }}@github.com/Grupo-SOAT/k8s-infra-oficina-mecanica.git k8s-infra
+
+          cd k8s-infra
+
+          CONFIGMAP="k8s/configmap.yaml"
+          DATABASE_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
+
+          echo "Database host: ${DB_HOST}"
+          echo "Database port: ${DB_PORT}"
+          echo "Database name: ${DB_NAME}"
+          echo "Spring Datasource URL: ${DATABASE_URL}"
+
+          sed -i "s|^[[:space:]]*SPRING_DATASOURCE_URL:.*|    SPRING_DATASOURCE_URL: ${DATABASE_URL}|" "$CONFIGMAP"
+          sed -i "s|^[[:space:]]*POSTGRES_DB:.*|    POSTGRES_DB: ${DB_NAME}|" "$CONFIGMAP"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- "$CONFIGMAP"; then
+            echo "Nenhuma alteração detectada no ConfigMap."
+            exit 0
+          fi
+
+          git diff -- "$CONFIGMAP"
+
+          git add "$CONFIGMAP"
+          git commit -m "chore: update database configuration"
+          git push origin main
+
+          echo "ConfigMap atualizado e enviado para o GitOps."
