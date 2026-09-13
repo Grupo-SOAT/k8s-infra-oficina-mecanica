@@ -13,7 +13,7 @@ output "routes" {
   value       = module.gateway_under_test.routes
 }
 
-output "lambda_arn" {
-  description = "ARN da Lambda validator real, lida via data source e usada como integração"
-  value       = data.aws_lambda_function.validator.arn
+output "lambda_function_name" {
+  description = "Nome da Lambda deste teste (deploy real, mesmo módulo usado pela stack principal)"
+  value       = module.lambda_under_test.function_name
 }
