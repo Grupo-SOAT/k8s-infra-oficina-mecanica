@@ -66,11 +66,15 @@ jobs:
       - name: Smoke Test
         if: ${{ inputs.action == 'apply' }}
         run: |
-          URL=$(terraform output -raw api_endpoint)
-          echo "Testando domínio do gateway: $URL"
-          # Sem Lambda integrada não há rotas, então 404 aqui já confirma que
-          # a API Gateway e seu domínio estão de pé e respondendo.
-          curl -sS -i "$URL"
+          BASE_URL=$(terraform output -raw api_endpoint)
+          MOCK_URL=$(terraform output -raw mock_url)
+
+          echo "Testando domínio do gateway (sem rota, espera 404): $BASE_URL"
+          curl -sS -i "$BASE_URL"
+
+          echo ""
+          echo "Testando rota fictícia com retorno mockado: $MOCK_URL"
+          curl -sS -i "$MOCK_URL"
 
       - name: Terraform Destroy
         if: ${{ inputs.action == 'destroy' }}
