@@ -55,7 +55,7 @@ jobs:
 
       - name: Discover Latest Lambda Artifact
         run: |
-          BUCKET="lambda-code-archive-oficina-mecanica"
+          BUCKET="lambda-code-archive-oficina-mecanica2"
 
           LAMBDA_KEY=$(aws s3api list-objects-v2 \
             --bucket "$BUCKET" \

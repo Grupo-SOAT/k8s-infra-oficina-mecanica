@@ -39,7 +39,7 @@ variable "handler" {
 variable "lambda_s3_bucket" {
   type        = string
   description = "Bucket S3 onde o artefato da Lambda validator é publicado (mesmo usado pela stack principal)"
-  default     = "lambda-code-archive-oficina-mecanica"
+  default     = "lambda-code-archive-oficina-mecanica2"
 }
 
 variable "lambda_s3_key" {
