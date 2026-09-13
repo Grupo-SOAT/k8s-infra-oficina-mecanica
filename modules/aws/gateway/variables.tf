@@ -5,7 +5,8 @@ variable "api_name" {
 
 variable "lambda_arn" {
   type        = string
-  description = "ARN da Lambda integrada ao API Gateway"
+  description = "ARN da Lambda integrada ao API Gateway. Deixe em branco para não criar integração, rotas nem permissão nenhuma — útil para testar isoladamente a criação da API Gateway e seu domínio, sem depender de uma Lambda existente."
+  default     = ""
 }
 
 variable "project_name" {
@@ -15,7 +16,8 @@ variable "project_name" {
 
 variable "lambda_function_name" {
     type = string
-    description = "nome da function lambda que será chamada pelo gateway"
+    description = "nome da function lambda que será chamada pelo gateway. Só é usado (e só precisa existir) quando lambda_arn não está vazio."
+    default = ""
 }
 
 variable "resources" {
@@ -33,4 +35,10 @@ variable "throttling_burst_limit" {
   type        = number
   description = "Limite de requisições em rajada, aplicado por rota no stage padrão"
   default     = 100
+}
+
+variable "permission_statement_id" {
+  type        = string
+  description = "statement_id da permissão de invocação concedida ao API Gateway na Lambda. Precisa ser único por Lambda: se mais de uma API (ex: produção e um harness de teste) apontar para a mesma função, cada uma precisa de um statement_id diferente para não conflitar."
+  default     = "AllowApiGatewayInvoke"
 }

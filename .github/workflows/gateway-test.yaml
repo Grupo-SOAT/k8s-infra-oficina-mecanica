@@ -42,8 +42,19 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
+      - name: Create Dedicated State Bucket (se não existir)
+        run: |
+          BUCKET="grupo-soat-oficina-mecanica-1-terraform-state"
+
+          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            echo "Bucket $BUCKET já existe."
+          else
+            echo "Criando bucket $BUCKET..."
+            aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
+          fi
+
       - name: Terraform Init
-        run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+        run: terraform init
 
       - name: Terraform Validate
         run: terraform validate
@@ -55,9 +66,23 @@ jobs:
       - name: Smoke Test
         if: ${{ inputs.action == 'apply' }}
         run: |
-          URL=$(terraform output -raw test_url)
-          echo "Testando: $URL"
-          curl -sS -i "$URL"
+          BASE_URL=$(terraform output -raw api_endpoint)
+          MOCK_URL=$(terraform output -raw mock_url)
+
+          echo "Testando domínio do gateway (sem rota, espera 404): $BASE_URL"
+          curl -sS -i "$BASE_URL"
+
+          echo ""
+          echo "Testando rota fictícia com retorno mockado: $MOCK_URL"
+          curl -sS -i "$MOCK_URL"
+
+          echo ""
+          echo "Testando rotas do contrato real (openapi/):"
+          for URL in $(terraform output -json sample_contract_urls | jq -r '.[]'); do
+            echo ""
+            echo "-> $URL"
+            curl -sS -i "$URL"
+          done
 
       - name: Terraform Destroy
         if: ${{ inputs.action == 'destroy' }}
