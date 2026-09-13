@@ -10,8 +10,8 @@ variable "project_name" {
 
 variable "aws_lab_role_arn" {
   type        = string
-  description = "ARN da LabRole (AWS Academy) usada para rodar o Lambda dummy deste teste"
-  default     = "arn:aws:iam::450853758184:role/voclabs/LabRole"
+  description = "ARN da LabRole a usar no Lambda dummy. Deixe em branco (padrão) para resolver automaticamente a LabRole da conta AWS Academy atual — evita fixar um account id que muda a cada reset de sessão do lab."
+  default     = ""
 }
 
 variable "api_name" {

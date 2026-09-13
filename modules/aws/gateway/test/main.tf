@@ -1,13 +1,21 @@
+data "aws_caller_identity" "current" {}
+
 data "archive_file" "dummy_lambda" {
   type        = "zip"
   source_file = "${path.module}/fixtures/dummy_handler.py"
   output_path = "${path.module}/.build/dummy_handler.zip"
 }
 
+locals {
+  # AWS Academy recria a conta a cada reset de sessão do lab, então não dá
+  # pra fixar o account id da LabRole: resolve pela conta autenticada no momento.
+  aws_lab_role_arn = var.aws_lab_role_arn != "" ? var.aws_lab_role_arn : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/voclabs/LabRole"
+}
+
 resource "aws_lambda_function" "dummy" {
   function_name = var.dummy_lambda_name
 
-  role = var.aws_lab_role_arn
+  role = local.aws_lab_role_arn
 
   runtime = "python3.12"
   handler = "dummy_handler.handler"
