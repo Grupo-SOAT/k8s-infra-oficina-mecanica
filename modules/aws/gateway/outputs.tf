@@ -15,9 +15,17 @@ output "api_arn" {
 
 output "routes" {
   description = "Rotas configuradas no gateway (contrato exposto), para conferência"
+
   value = setunion(
-    local.auth_route_keys,
+    [
+      aws_apigatewayv2_route.auth.route_key
+    ],
     [for r in var.resources : "ANY /${r}"],
     [for r in var.resources : "ANY /${r}/{proxy+}"],
+    [
+      "POST /auth/login",
+      "POST /auth/chatbot",
+      "POST /auth/change-password"
+    ],
   )
 }
