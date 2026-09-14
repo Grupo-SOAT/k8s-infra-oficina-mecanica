@@ -770,6 +770,14 @@ O workflow `Deploy AWS Resources` (`.github/workflows/terraform.yaml`) responde 
 
 Cada execução resolve o artefato mais recente da Lambda no bucket S3 (ou usa o payload do dispatch), garante o cluster, aplica a infraestrutura completa e, por fim, atualiza a URL do backend (ALB) e o `configmap` com o endpoint do RDS via Pull Request automático. Um grupo de `concurrency` serializa as execuções para não haver `apply` concorrente.
 
+### Variáveis e secrets de organização
+
+Os workflows usam configuração no nível da organização (Settings → Secrets and variables → Actions):
+
+**Variables:** `AWS_REGION`, `TF_STATE_BUCKET`, `TF_LAMBDA_BUCKET`, `TF_KAFKA_BUCKET`, `TF_AWS_LAB_ROLE`, `GIT_INFRA_REPO_URL`, `GIT_INFRA_BRANCH`, `LAMBDA_VALIDATOR_NAME`, `LAMBDA_AUTHORIZER_NAME`.
+
+**Secrets:** `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `API_KEY_CHATBOT`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `DEFAULT_USER_PASSWORD`, `GF_SECURITY_ADMIN_PASSWORD`, `PAT_REPO_INFRA_LAMBDA`.
+
 ---
 
 # 🏷️ Atualização das imagens

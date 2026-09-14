@@ -80,7 +80,7 @@ jobs:
           KEY="${INPUT_KEY:-${PAYLOAD_KEY:-}}"
           HASH="${INPUT_HASH:-${PAYLOAD_HASH:-}}"
 
-          if [ -z "$KEY" ] || [ -z "$HASH" ]; then
+          if [ -z "$KEY" ]; then
             KEY=$(aws s3api list-objects-v2 \
               --bucket "$BUCKET" \
               --query 'reverse(sort_by(Contents, &LastModified))[0].Key' \
@@ -90,7 +90,9 @@ jobs:
               echo "ERRO: nenhum artefato da Lambda encontrado no bucket $BUCKET."
               exit 1
             fi
+          fi
 
+          if [ -z "$HASH" ]; then
             aws s3 cp "s3://$BUCKET/$KEY" ./lambda.zip
             HASH=$(openssl dgst -sha256 -binary ./lambda.zip | base64 -w 0)
           fi

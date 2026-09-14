@@ -24,6 +24,9 @@ resource "aws_security_group" "lambda" {
   description = "Security group das Lambdas que acessam o RDS"
   vpc_id      = data.aws_vpc.default.id
 
+  ingress = []
+  egress  = []
+
   tags = {
     Name    = "${var.project_name}-lambda"
     Project = var.project_name
@@ -56,6 +59,9 @@ resource "aws_security_group" "vpc_endpoints" {
   name        = "${var.project_name}-vpc-endpoints"
   description = "Security group dos VPC endpoints usados pelas Lambdas"
   vpc_id      = data.aws_vpc.default.id
+
+  ingress = []
+  egress  = []
 
   tags = {
     Name    = "${var.project_name}-vpc-endpoints"

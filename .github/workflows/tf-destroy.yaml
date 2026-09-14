@@ -33,6 +33,21 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      - name: Set Secrets for Terraform
+        run: |
+          echo "TF_VAR_aws_region=${{ vars.AWS_REGION }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_aws_lab_role=${{ vars.TF_AWS_LAB_ROLE }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_database_user_secret=${{ secrets.POSTGRES_USER }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_database_password_secret=${{ secrets.POSTGRES_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_jwt_secret=${{ secrets.JWT_SECRET }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_api_key_chatbot=${{ secrets.API_KEY_CHATBOT }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_spring_datasource_password=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_spring_datasource_username=${{ secrets.SPRING_DATASOURCE_USERNAME }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_default_user_password=${{ secrets.DEFAULT_USER_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_grafana_admin_password=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_bucket_name_lambda=${{ vars.TF_LAMBDA_BUCKET }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_bucket_name_kafka=${{ vars.TF_KAFKA_BUCKET }}" >> "$GITHUB_ENV"
+
       - name: Destroy Lambda S3 Bucket
         continue-on-error: true
         env:
