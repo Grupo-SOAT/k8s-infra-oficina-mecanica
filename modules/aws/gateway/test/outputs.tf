@@ -1,19 +1,28 @@
 output "api_endpoint" {
-  description = "Endpoint público da API Gateway de teste"
+  description = "Endpoint público (domínio) da API Gateway de teste"
   value       = module.gateway_under_test.api_endpoint
 }
 
-output "test_url" {
-  description = "URL pronta para curl, usando o primeiro recurso da lista de teste"
-  value       = "${module.gateway_under_test.api_endpoint}/${var.resources[0]}"
-}
-
 output "routes" {
-  description = "Rotas configuradas no gateway de teste"
+  description = "Rotas configuradas no gateway de teste (vazio enquanto não houver Lambda integrada)"
   value       = module.gateway_under_test.routes
 }
 
-output "dummy_lambda_name" {
-  description = "Nome do Lambda dummy criado só para este teste"
-  value       = aws_lambda_function.dummy.function_name
+output "mock_url" {
+  description = "URL da rota fictícia (HTTP_PROXY para um echo público), pronta para curl"
+  value       = "${module.gateway_under_test.api_endpoint}/mock"
+}
+
+output "contract_route_keys" {
+  description = "Rotas do contrato real (openapi/) criadas neste teste"
+  value       = local.contract_route_keys
+}
+
+output "sample_contract_urls" {
+  description = "Algumas URLs do contrato real, sem path params, prontas para curl"
+  value = [
+    "${module.gateway_under_test.api_endpoint}/api/v1/owners",
+    "${module.gateway_under_test.api_endpoint}/api/v1/service-orders",
+    "${module.gateway_under_test.api_endpoint}/api/v1/reports/catalog/services/average-time",
+  ]
 }

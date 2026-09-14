@@ -9,11 +9,22 @@ resource "aws_apigatewayv2_api" "this" {
 }
 
 # ---------------------------------------------------------------------------
-# Auth: POST /auth/cpf (e demais subrotas de /auth) sempre na Lambda
-# validator - ela e quem valida o CPF e emite o JWT.
+# Auth:
+# POST /auth/cpf é direcionado para a Lambda validator.
+# Ela é responsável por validar o CPF e emitir o JWT.
 # ---------------------------------------------------------------------------
 
+locals {
+  create_lambda_integration = var.lambda_arn != ""
+
+  auth_route_keys = local.create_lambda_integration ? toset([
+    "POST /${var.auth_resource}/cpf",
+  ]) : toset([])
+}
+
 resource "aws_apigatewayv2_integration" "lambda" {
+  count = local.create_lambda_integration ? 1 : 0
+
   api_id = aws_apigatewayv2_api.this.id
 
   integration_type   = "AWS_PROXY"
@@ -23,13 +34,6 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
-locals {
-  auth_route_keys = toset([
-    "POST /${var.auth_resource}/cpf",
-
-  ])
-}
-
 resource "aws_apigatewayv2_route" "auth" {
   for_each = local.auth_route_keys
 
@@ -37,10 +41,12 @@ resource "aws_apigatewayv2_route" "auth" {
 
   route_key = each.value
 
-  target = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  target = "integrations/${aws_apigatewayv2_integration.lambda[0].id}"
 }
 
 resource "aws_lambda_permission" "api_gateway_validator" {
+  count = local.create_lambda_integration ? 1 : 0
+
   statement_id = "AllowApiGatewayInvokeValidator"
 
   action = "lambda:InvokeFunction"
@@ -53,7 +59,8 @@ resource "aws_lambda_permission" "api_gateway_validator" {
 }
 
 # ---------------------------------------------------------------------------
-# Authorizer: valida o JWT (emitido pela lambda acima) nas rotas de negocio.
+# Authorizer:
+# Valida o JWT emitido pela Lambda nas rotas de negócio.
 # ---------------------------------------------------------------------------
 
 resource "aws_apigatewayv2_authorizer" "jwt" {
@@ -84,11 +91,20 @@ resource "aws_lambda_permission" "api_gateway_authorizer" {
 }
 
 # ---------------------------------------------------------------------------
-# Rotas de negocio: repassadas direto para o backend (HTTP_PROXY, sem passar
-# pela lambda), protegidas pelo authorizer acima. Duas integracoes por
-# recurso porque a substituicao de path "{proxy}" do HTTP_PROXY so existe
-# quando a rota tem a variavel de path "{proxy+}" - a rota "de colecao"
-# (ex: "/clientes") usa uma integracao com URI literal.
+# Rotas de negócio:
+# São encaminhadas diretamente para o backend via HTTP_PROXY,
+# sem passar pela Lambda validator.
+#
+# Existem duas integrações por recurso:
+#
+# 1. backend_flat:
+#    /clientes
+#
+# 2. backend_proxy:
+#    /clientes/{proxy+}
+#
+# A segunda utiliza overwrite:path para preservar o caminho completo
+# recebido pelo API Gateway.
 # ---------------------------------------------------------------------------
 
 resource "aws_apigatewayv2_integration" "backend_flat" {
@@ -111,7 +127,10 @@ resource "aws_apigatewayv2_integration" "backend_proxy" {
   integration_type   = "HTTP_PROXY"
   integration_method = "ANY"
   integration_uri    = var.backend_url
-  request_parameters = { "overwrite:path" = "$request.path" }
+
+  request_parameters = {
+    "overwrite:path" = "$request.path"
+  }
 
   payload_format_version = "1.0"
 }
@@ -142,6 +161,40 @@ resource "aws_apigatewayv2_route" "protected_proxy" {
   authorizer_id      = aws_apigatewayv2_authorizer.jwt.id
 }
 
+# ---------------------------------------------------------------------------
+# Rotas de autenticação que são tratadas diretamente pelo backend.
+# ---------------------------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "backend_auth" {
+  api_id             = aws_apigatewayv2_api.this.id
+  integration_type   = "HTTP_PROXY"
+  integration_method = "ANY"
+  integration_uri    = var.backend_url
+
+  request_parameters = {
+    "overwrite:path" = "$request.path"
+  }
+
+  payload_format_version = "1.0"
+}
+
+resource "aws_apigatewayv2_route" "backend_auth" {
+  for_each = toset([
+    "POST /auth/login",
+    "POST /auth/chatbot",
+    "POST /auth/change-password"
+  ])
+
+  api_id    = aws_apigatewayv2_api.this.id
+  route_key = each.value
+
+  target = "integrations/${aws_apigatewayv2_integration.backend_auth.id}"
+}
+
+# ---------------------------------------------------------------------------
+# Default stage
+# ---------------------------------------------------------------------------
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id = aws_apigatewayv2_api.this.id
 
@@ -158,18 +211,4 @@ resource "aws_apigatewayv2_stage" "default" {
     ManagedBy = "Terraform"
     Project   = var.project_name
   }
-}
-
-resource "aws_apigatewayv2_integration" "backend_auth" {
-  api_id             = aws_apigatewayv2_api.this.id
-  integration_type   = "HTTP_PROXY"
-  integration_method = "ANY"
-  integration_uri    = var.backend_url
-  request_parameters = { "overwrite:path" = "$request.path" }
-}
-resource "aws_apigatewayv2_route" "backend_auth" {
-  for_each  = toset(["POST /auth/login", "POST /auth/chatbot", "POST /auth/change-password"])
-  api_id    = aws_apigatewayv2_api.this.id
-  route_key = each.value
-  target    = "integrations/${aws_apigatewayv2_integration.backend_auth.id}"
 }

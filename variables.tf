@@ -23,7 +23,7 @@ variable "bucket_name_kafka" {
 }
 
 variable "bucket_name_lambda" {
-  default = "lambda-code-archive-oficina-mecanica"
+  default = "lambda-code-archive-oficina-mecanica2"
 }
 
 variable "git_repo_url" {
