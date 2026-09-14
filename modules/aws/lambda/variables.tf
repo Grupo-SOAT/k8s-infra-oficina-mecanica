@@ -73,24 +73,11 @@ variable "aws_lab_role_arn" {
 }
 
 
-variable "database_user_secret_arn" {
-
-  type = string
-
-}
-
-
-variable "database_password_secret_arn" {
-
-  type = string
-
-}
-
-
 variable "database_host" {
 
   type        = string
   description = "Host do Postgres (RDS gerenciado, ver repo db-oficina-mecanica) que a lambda consulta para validar o cliente"
+  default     = ""
 
 }
 
@@ -111,16 +98,51 @@ variable "database_name" {
 }
 
 
-variable "jwt_secret_arn" {
+variable "database_user" {
 
   type        = string
-  description = "ARN da secret com o mesmo valor de security.jwt.secret do monolito, para a lambda assinar o JWT do cliente"
+  description = "Usuario do banco usado pela lambda"
+  default     = ""
+
+  sensitive = true
 
 }
 
 
-variable "backend_url" {
+variable "database_password" {
 
-  type = string
+  type        = string
+  description = "Senha do banco usada pela lambda"
+  default     = ""
+
+  sensitive = true
+
+}
+
+
+variable "jwt_secret" {
+
+  type        = string
+  description = "Mesmo valor de security.jwt.secret do monolito, para a lambda assinar e validar o JWT"
+
+  sensitive = true
+
+}
+
+
+variable "vpc_subnet_ids" {
+
+  type        = list(string)
+  description = "Subnets em que a lambda sera executada. Vazio mantem a lambda fora da VPC."
+  default     = []
+
+}
+
+
+variable "vpc_security_group_ids" {
+
+  type        = list(string)
+  description = "Security groups da lambda quando executada dentro da VPC"
+  default     = []
 
 }

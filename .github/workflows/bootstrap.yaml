@@ -27,7 +27,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Create Terraform State Bucket
         run: |
@@ -42,7 +42,7 @@ jobs:
 
             aws s3api create-bucket \
               --bucket "$BUCKET" \
-              --region us-east-1
+              --region "${{ vars.AWS_REGION }}"
           fi
 
       - name: Create Lambda Code Bucket
@@ -58,7 +58,7 @@ jobs:
 
             aws s3api create-bucket \
               --bucket "$BUCKET" \
-              --region us-east-1
+              --region "${{ vars.AWS_REGION }}"
           fi
       
       - name: Create Kafka History Bucket
@@ -74,5 +74,5 @@ jobs:
 
             aws s3api create-bucket \
               --bucket "$BUCKET" \
-              --region us-east-1
+              --region "${{ vars.AWS_REGION }}"
           fi

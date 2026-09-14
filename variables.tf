@@ -23,7 +23,7 @@ variable "bucket_name_kafka" {
 }
 
 variable "bucket_name_lambda" {
-  default = "lambda-code-archive-oficina-mecanica2"
+  default = "lambda-code-archive-oficina-mecanica"
 }
 
 variable "git_repo_url" {
@@ -59,7 +59,8 @@ variable "default_tags" {
 }
 
 variable "aws_lab_role" {
-  default = "arn:aws:iam::450853758184:role/voclabs/LabRole"
+  type        = string
+  description = "ARN da LabRole do AWS Academy onde a infraestrutura sera provisionada"
 }
 
 variable "database_user_secret" {
@@ -115,10 +116,17 @@ variable "project_name" {
   description = "nome do projeto"
 }
 
+variable "db_identifier" {
+  type        = string
+  description = "Identifier da instancia RDS provisionada pelo repo db-oficina-mecanica"
+  default     = "oficina-mecanica-db"
+}
+
 variable "backend_url" {
 
   type        = string
   description = "backend url para a lambda acessar (basicamente será o host que estará o load balancer AWS do cluster EKS)"
+  default     = "https://httpbin.org"
 
 }
 
@@ -126,27 +134,14 @@ variable "source_hash_code_lambda" {
 
   type        = string
   description = "hash do arquivo zip do codigo lambda SHA256 (em base64)"
+  default     = ""
 
 }
 
 variable "lambda_s3_key" {
   type        = string
   description = "nome do artefato upado no bucket lambda"
-}
-
-variable "database_host" {
-  type        = string
-  description = "Host do Postgres gerenciado (RDS), a ser preenchido com o output do repo db-oficina-mecanica assim que o banco for provisionado"
-}
-
-variable "database_port" {
-  type    = number
-  default = 5432
-}
-
-variable "database_name" {
-  type    = string
-  default = "workshop"
+  default     = ""
 }
 
 variable "gateway_resources" {
