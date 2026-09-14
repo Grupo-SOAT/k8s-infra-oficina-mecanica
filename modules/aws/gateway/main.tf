@@ -23,7 +23,7 @@ locals {
 }
 
 resource "aws_apigatewayv2_integration" "lambda" {
-  count = local.create_lambda_integration ? 1 : 0
+  
 
   api_id = aws_apigatewayv2_api.this.id
 
@@ -45,7 +45,7 @@ resource "aws_apigatewayv2_route" "auth" {
 }
 
 resource "aws_lambda_permission" "api_gateway_validator" {
-  count = local.create_lambda_integration ? 1 : 0
+  
 
   statement_id = "AllowApiGatewayInvokeValidator"
 
