@@ -44,7 +44,6 @@ spec:
 
       containers:
         - name: workshop-backend
-
           image: 450853758184.dkr.ecr.us-east-1.amazonaws.com/registry-oficina-mecanica-mnl:2c5108a393fb5f08896492b23a8df28fb80f15f8
 
           ports:
