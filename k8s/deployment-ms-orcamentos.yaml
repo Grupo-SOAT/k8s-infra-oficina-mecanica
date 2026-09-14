@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: ms-orcamentos
-          image: 027499018555.dkr.ecr.us-east-1.amazonaws.com/registry-oficina-mecanica-ms-orcamentos:625b8ee63a334219feabff466a6baa4a2c8ea8b0
+          image: 450853758184.dkr.ecr.us-east-1.amazonaws.com/registry-oficina-mecanica-ms-orcamentos:4897629cf3c41b78e3627fe4fb32ff145312eb14
           
           ports:
             - containerPort: 8081
