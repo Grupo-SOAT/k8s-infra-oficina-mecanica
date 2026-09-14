@@ -5,6 +5,6 @@ metadata:
   namespace: oficina-mecanica
 data:
   SPRING_DATASOURCE_URL: jdbc:postgresql://oficina-mecanica-db.cz7ej3gnugt1.us-east-1.rds.amazonaws.com:5432/oficina_mecanica_db
-  POSTGRES_DB: oficina-mecanica-db
+  POSTGRES_DB: oficina_mecanica_db
   SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-service:29092
   APP_BUDGET_BASE_URL: http://localhost:8081
