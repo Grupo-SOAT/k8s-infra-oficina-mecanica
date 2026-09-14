@@ -14,17 +14,7 @@ resource "aws_apigatewayv2_api" "this" {
 # Ela é responsável por validar o CPF e emitir o JWT.
 # ---------------------------------------------------------------------------
 
-locals {
-  create_lambda_integration = var.lambda_arn != ""
-
-  auth_route_keys = local.create_lambda_integration ? toset([
-    "POST /${var.auth_resource}/cpf",
-  ]) : toset([])
-}
-
 resource "aws_apigatewayv2_integration" "lambda" {
-  count = local.create_lambda_integration ? 1 : 0
-
   api_id = aws_apigatewayv2_api.this.id
 
   integration_type   = "AWS_PROXY"
@@ -35,18 +25,14 @@ resource "aws_apigatewayv2_integration" "lambda" {
 }
 
 resource "aws_apigatewayv2_route" "auth" {
-  for_each = local.auth_route_keys
-
   api_id = aws_apigatewayv2_api.this.id
 
-  route_key = each.value
+  route_key = "POST /${var.auth_resource}/cpf"
 
-  target = "integrations/${aws_apigatewayv2_integration.lambda[0].id}"
+  target = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
 resource "aws_lambda_permission" "api_gateway_validator" {
-  count = local.create_lambda_integration ? 1 : 0
-
   statement_id = "AllowApiGatewayInvokeValidator"
 
   action = "lambda:InvokeFunction"
