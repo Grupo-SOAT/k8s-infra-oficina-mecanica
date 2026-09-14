@@ -235,8 +235,8 @@ jobs:
           git checkout -b "$BRANCH_NAME"
 
           # Atualiza o ConfigMap
-          sed -i "s|^[[:space:]]*SPRING_DATASOURCE_URL:.*|    SPRING_DATASOURCE_URL: ${DATABASE_URL}|" "$CONFIGMAP"
-          sed -i "s|^[[:space:]]*POSTGRES_DB:.*|    POSTGRES_DB: ${DB_NAME}|" "$CONFIGMAP"
+          sed -i "s|^[[:space:]]*SPRING_DATASOURCE_URL:.*|  SPRING_DATASOURCE_URL: ${DATABASE_URL}|" "$CONFIGMAP"
+          sed -i "s|^[[:space:]]*POSTGRES_DB:.*|  POSTGRES_DB: ${DB_NAME}|" "$CONFIGMAP"
 
           # Configura identidade do commit
           git config user.name "github-actions[bot]"
