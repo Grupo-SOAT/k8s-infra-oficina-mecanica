@@ -15,5 +15,9 @@ output "api_arn" {
 
 output "routes" {
   description = "Rotas configuradas no gateway (contrato exposto), para conferência"
-  value       = local.route_keys
+  value = setunion(
+    local.auth_route_keys,
+    [for r in var.resources : "ANY /${r}"],
+    [for r in var.resources : "ANY /${r}/{proxy+}"],
+  )
 }

@@ -317,6 +317,11 @@ module "api_gateway" {
 
   resources = var.gateway_resources
 
+  backend_url = var.backend_url
+
+  authorizer_invoke_arn    = module.lambda_authorizer.invoke_arn
+  authorizer_function_name = module.lambda_authorizer.function_name
+
 }
 
 module "lambda" {
@@ -348,6 +353,41 @@ module "lambda" {
   database_port = var.database_port
 
   database_name = var.database_name
+
+  jwt_secret_arn = module.jwt_secret.secret_arn
+
+  backend_url = var.backend_url
+}
+
+module "lambda_authorizer" {
+
+  source = "./modules/aws/lambda"
+
+  function_name = "oficina-mecanica-jwt-authorizer"
+
+  project_name = var.project_name
+
+  aws_lab_role_arn = var.aws_lab_role
+
+  runtime = "java21"
+
+  handler = "br.com.oficina.lambda.AuthorizerHandler::handleRequest"
+
+  timeout     = 5
+  memory_size = 128
+
+  lambda_s3_bucket = var.bucket_name_lambda
+
+  lambda_s3_key = var.lambda_s3_key
+
+  source_code_hash = var.source_hash_code_lambda
+
+  # O authorizer so valida o JWT: nao consulta banco, so precisa do secret.
+  database_user_secret_arn     = module.database_user_secret.secret_arn
+  database_password_secret_arn = module.database_password_secret.secret_arn
+  database_host                = var.database_host
+  database_port                = var.database_port
+  database_name                = var.database_name
 
   jwt_secret_arn = module.jwt_secret.secret_arn
 
