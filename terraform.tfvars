@@ -18,7 +18,7 @@ api_key_chatbot = ""
 spring_datasource_password = ""
 spring_datasource_username = ""
 default_user_password = ""
-backend_url = "http://localhost:8080"
+backend_url = "https://httpbin.org"
 source_hash_code_lambda = ""
 lambda_s3_key = ""
 # TODO: preencher quando o RDS for provisionado no repo db-oficina-mecanica
