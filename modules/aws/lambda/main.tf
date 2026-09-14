@@ -30,6 +30,11 @@ resource "aws_lambda_function" "this" {
     }
   }
 
+  # Terraform cria as funcoes; o pipeline lambda-code atualiza o artefato.
+  lifecycle {
+    ignore_changes = [s3_key, source_code_hash]
+  }
+
   tags = {
     ManagedBy = "Terraform"
     Project   = var.project_name
