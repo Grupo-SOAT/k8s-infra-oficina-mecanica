@@ -13,3 +13,7 @@ output "subnet_ids" {
 output "vpc_cidr_block" {
   value = data.aws_vpc.default.cidr_block
 }
+
+output "lambda_security_group_id" {
+  value = aws_security_group.lambda.id
+}

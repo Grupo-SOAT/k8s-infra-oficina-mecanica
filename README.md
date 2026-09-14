@@ -4,7 +4,7 @@ Repositório responsável pela **infraestrutura Kubernetes e AWS** da aplicaçã
 
 O projeto utiliza **Terraform** para provisionamento da infraestrutura e **Kubernetes + Argo CD** para gerenciamento e entrega dos workloads da aplicação.
 
-Além dos componentes da aplicação, este repositório concentra recursos de infraestrutura como **Amazon EKS, Amazon ECR, AWS Load Balancer Controller, API Gateway, AWS Lambda, AWS Secrets Manager, Kafka e observabilidade**.
+Além dos componentes da aplicação, este repositório concentra recursos de infraestrutura como **Amazon EKS, Amazon ECR, Amazon RDS, AWS Load Balancer Controller, API Gateway, AWS Lambda, Kafka e observabilidade**.
 
 ---
 
@@ -24,7 +24,7 @@ Além dos componentes da aplicação, este repositório concentra recursos de in
 * [Terraform](#-terraform)
 * [AWS](#-aws)
 * [Argo CD e GitOps](#-argo-cd-e-gitops)
-* [Secrets e configuração](#-secrets-e-configuração)
+* [Configuração e segredos](#-configuração-e-segredos)
 * [Pré-requisitos](#-pré-requisitos)
 * [Execução](#-execução)
 * [Deploy](#-deploy)
@@ -41,7 +41,7 @@ A infraestrutura foi construída com o objetivo de executar a aplicação Oficin
 
 * execução do monólito;
 * execução do microsserviço de orçamentos;
-* comunicação com PostgreSQL;
+* comunicação com Amazon RDS PostgreSQL;
 * processamento assíncrono através do Kafka;
 * gerenciamento de workloads através do Argo CD;
 * exposição externa através do AWS Application Load Balancer;
@@ -50,7 +50,7 @@ A infraestrutura foi construída com o objetivo de executar a aplicação Oficin
 * monitoramento e observabilidade;
 * provisionamento da infraestrutura através de Terraform.
 
-O repositório também contém os componentes AWS necessários para suportar a arquitetura, incluindo **EKS, ECR, Secrets Manager, API Gateway e Lambda**.
+O repositório também contém os componentes AWS necessários para suportar a arquitetura, incluindo **EKS, ECR, Amazon RDS, API Gateway, Lambda e VPC endpoints**.
 
 ---
 
@@ -126,9 +126,10 @@ Provisionamento dos recursos necessários para a aplicação:
 * Amazon EKS;
 * Amazon ECR;
 * VPC/rede;
-* AWS Secrets Manager;
+* Amazon RDS (provisionado pelo repositório `db-oficina-mecanica`);
 * AWS Lambda;
 * API Gateway;
+* VPC endpoints;
 * AWS Load Balancer Controller.
 
 ### 2. Infraestrutura Kubernetes
@@ -170,9 +171,11 @@ O cluster possui componentes destinados à coleta e visualização de:
 | Argo CD                      | GitOps / CD                                    |
 | Helm                         | Instalação de componentes Kubernetes           |
 | Amazon ECR                   | Registry das imagens                           |
+| Amazon RDS PostgreSQL        | Banco de dados gerenciado                      |
+| Amazon API Gateway           | Entrada HTTP + Lambda Authorizer               |
+| AWS Lambda                   | Validação de CPF e autorização JWT             |
 | AWS ALB                      | Exposição HTTP                                 |
 | AWS Load Balancer Controller | Integração ALB + Kubernetes                    |
-| PostgreSQL                   | Banco de dados                                 |
 | Apache Kafka                 | Mensageria                                     |
 | Grafana                      | Dashboards                                     |
 | Prometheus                   | Métricas                                       |
@@ -213,18 +216,15 @@ k8s-infra-oficina-mecanica/
 │   ├── deployment-mailpit.yaml
 │   ├── deployment-monolito.yaml
 │   ├── deployment-ms-orcamentos.yaml
-│   ├── deployment-postgres.yaml
 │   ├── hpa.yaml
 │   ├── ingress.yaml
 │   ├── pvc-kafka.yaml
-│   ├── pvc.yaml
 │   ├── secret.yaml
 │   ├── service-kafka.yaml
 │   ├── service-kafka-ui.yaml
 │   ├── service-mailpit.yaml
 │   ├── service-monolito.yaml
-│   ├── service-ms-orcamentos.yaml
-│   └── service-postgres.yaml
+│   └── service-ms-orcamentos.yaml
 │
 ├── modules/
 │   ├── argocd/
@@ -233,8 +233,7 @@ k8s-infra-oficina-mecanica/
 │   │   ├── eks/
 │   │   ├── gateway/
 │   │   ├── lambda/
-│   │   ├── network/
-│   │   └── secret-manager/
+│   │   └── network/
 │   │
 │   ├── helm/
 │   │   ├── aws-load-balancer/
@@ -512,7 +511,7 @@ O arquivo principal instancia módulos para:
 * ECR;
 * network;
 * EKS;
-* Secrets Manager;
+* Amazon RDS (via `data.aws_db_instance`, sem criar o banco aqui);
 * API Gateway;
 * Lambda.
 
@@ -542,7 +541,6 @@ eks
 gateway
 lambda
 network
-secret-manager
 ```
 
 ### Helm
@@ -618,23 +616,26 @@ O módulo permite configurar:
 
 ---
 
-# 🔐 AWS Secrets Manager
+# 🗄️ Amazon RDS
 
-O Terraform cria secrets para informações sensíveis da aplicação.
-
-Entre eles:
+O banco PostgreSQL é provisionado pelo repositório **db-oficina-mecanica**, fora deste Terraform. Aqui o endpoint é apenas lido, através de:
 
 ```text
-oficina-mecanica/database-user
-oficina-mecanica/database-password
-oficina-mecanica/jwt-secret
-oficina-mecanica/api-key-chatbot
-oficina-mecanica/spring-datasource-password
-oficina-mecanica/spring-datasource-username
-oficina-mecanica/default-user-password
+data "aws_db_instance" "this"
 ```
 
-A intenção é manter credenciais fora dos manifests da aplicação e centralizar o armazenamento de informações sensíveis na AWS.
+A Lambda e o ConfigMap da aplicação usam o host/porta/nome retornados por esse data source, mantendo a infraestrutura agnóstica de conta/região. Por isso o RDS precisa existir antes do `apply` deste repositório.
+
+---
+
+# 🔐 Configuração e segredos
+
+Este repositório **não cria recursos no AWS Secrets Manager**. As informações sensíveis chegam por **GitHub Secrets de organização** e são distribuídas assim:
+
+* **Kubernetes:** o Terraform cria o `kubernetes_secret_v1.app_secret` no namespace da aplicação, com JWT, credenciais do datasource, `POSTGRES_*`, `API_KEY_CHATBOT` e `DEFAULT_USER_PASSWORD`. O arquivo `k8s/secret.yaml` é apenas referência e fica fora do Argo CD (`directory.exclude`).
+* **Lambda:** as credenciais do banco e o segredo JWT são injetados como **variáveis de ambiente** da função.
+
+Nenhum valor sensível fica versionado no Git.
 
 ---
 
@@ -651,7 +652,9 @@ Ambas rodam em `Java 21` e usam o mesmo artefato (`lambda_s3_key`/`source_hash_c
 
 O código das funções é obtido através de um artefato armazenado no Amazon S3.
 
-A Lambda `validator` recebe configurações relacionadas a: credenciais do banco, host, porta, nome do banco, segredo JWT e URL do backend. A `jwt-authorizer` só usa o segredo JWT (as demais variáveis são herdadas do mesmo módulo Terraform, mas não são lidas por ela).
+A `validator` roda **dentro da VPC** (subnets padrão + security group dedicado) porque consulta o RDS privado. O security group libera apenas `5432` para o CIDR da VPC e `443` para um **VPC endpoint de CloudWatch Logs**, usado para publicar logs sem NAT. Ela recebe `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD` e `JWT_SECRET` como variáveis de ambiente.
+
+A `jwt-authorizer` só valida o JWT e por isso fica **fora da VPC**, recebendo apenas `JWT_SECRET`. O nome das duas funções é resolvido pelas variáveis de organização `LAMBDA_VALIDATOR_NAME` e `LAMBDA_AUTHORIZER_NAME`.
 
 ---
 
@@ -665,8 +668,9 @@ modules/aws/gateway
 
 cria a API `oficina-mecanica-api` com duas famílias de rota:
 
-* **`/auth` e `/auth/{proxy+}`** → integração `AWS_PROXY` com a lambda `oficina-mecanica-validator` (sem authorizer - é aqui que o cliente pega o JWT);
-* **rotas de negócio** (`var.gateway_resources`, ex.: `clientes`, `veiculos`, `ordens-servico`) → integração `HTTP_PROXY` **direto para o backend** (`var.backend_url`), protegidas pelo **Lambda Authorizer** (`oficina-mecanica-jwt-authorizer`).
+* **`POST /auth/cpf`** → integração `AWS_PROXY` com a lambda `oficina-mecanica-validator` (sem authorizer - é aqui que o cliente pega o JWT);
+* **`POST /auth/login`, `POST /auth/chatbot`, `POST /auth/change-password`** → integração `HTTP_PROXY` direto para o backend (sem authorizer);
+* **rotas de negócio** (`var.gateway_resources`: `owners`, `vehicles`, `service-orders`, `catalog`, `supplies`, `suppliers`, `purchase-orders`, `users`, `reporting`) → integração `HTTP_PROXY` **direto para o backend** (`var.backend_url`), protegidas pelo **Lambda Authorizer** (`oficina-mecanica-jwt-authorizer`). Para cada recurso existem as rotas `ANY /{recurso}` e `ANY /{recurso}/{proxy+}`.
 
 O fluxo principal é:
 
@@ -706,7 +710,6 @@ Kubernetes
    ├── Monólito
    ├── MS Orçamentos
    ├── Kafka
-   ├── PostgreSQL
    └── Observabilidade
 ```
 
@@ -721,6 +724,8 @@ git_manifests_path
 ```
 
 e também configura a aplicação de observabilidade.
+
+O `secret.yaml` não é aplicado pelo Argo CD (fica em `directory.exclude`), pois o segredo real é criado pelo Terraform. A aplicação de observabilidade usa `prune: false` para preservar os ConfigMaps de dashboards/alerting gerenciados pelo Terraform.
 
 ---
 
@@ -757,32 +762,26 @@ Dessa forma, o processo de deploy segue o princípio:
 
 > **Git como fonte de verdade do estado desejado do cluster.**
 
+O workflow `Deploy AWS Resources` (`.github/workflows/terraform.yaml`) responde a:
+
+* `repository_dispatch` `lambda-updated` — disparado pelo repositório `lambda-code` após publicar o artefato no S3;
+* `repository_dispatch` `db-deployed` — disparado pelo repositório `db-oficina-mecanica` após subir o RDS;
+* `workflow_dispatch` — execução manual (aceita `lambda_key`/`lambda_hash` opcionais).
+
+Cada execução resolve o artefato mais recente da Lambda no bucket S3 (ou usa o payload do dispatch), garante o cluster, aplica a infraestrutura completa e, por fim, atualiza a URL do backend (ALB) e o `configmap` com o endpoint do RDS via Pull Request automático. Um grupo de `concurrency` serializa as execuções para não haver `apply` concorrente.
+
 ---
 
 # 🏷️ Atualização das imagens
 
-As aplicações são executadas a partir de imagens Docker.
-
-Exemplo atual do monólito:
-
-```yaml
-image: leonardooziro/sistema-oficina-mecanica-mnl:latest
-```
-
-O microsserviço utiliza:
-
-```yaml
-image: leonardooziro/ms-orcamentos:latest
-```
-
-No fluxo de produção AWS, o objetivo é utilizar os repositories ECR provisionados pelo Terraform:
+As aplicações são executadas a partir de imagens Docker publicadas nos repositories ECR provisionados pelo Terraform:
 
 ```text
 registry-oficina-mecanica-mnl
 registry-oficina-mecanica-ms-orcamentos
 ```
 
-As pipelines de aplicação podem publicar uma imagem identificada pelo commit e atualizar o manifest correspondente neste repositório.
+As pipelines de aplicação (`mnl-oficina-mecanica` e `ms-orcamentos`) descobrem a conta AWS via `sts get-caller-identity`, publicam a imagem com a tag do commit e abrem/mergeiam um Pull Request neste repositório atualizando o campo `image` do deployment correspondente. O Argo CD sincroniza a nova imagem.
 
 ---
 
@@ -805,7 +804,9 @@ SPRING_KAFKA_BOOTSTRAP_SERVERS
 APP_BUDGET_BASE_URL
 ```
 
-Informações sensíveis devem ser mantidas em `Secret` ou em mecanismos externos de gerenciamento de segredos.
+As chaves `SPRING_DATASOURCE_URL` e `POSTGRES_DB` são atualizadas automaticamente pelo pipeline `Deploy AWS Resources` (via Pull Request) com o endpoint do RDS.
+
+Informações sensíveis ficam no `app-secret` (criado pelo Terraform) e nas variáveis de ambiente da Lambda, nunca versionadas.
 
 ---
 
@@ -869,10 +870,10 @@ kubectl get ingress -n oficina-mecanica
 
 # 🏗️ Inicialização do Terraform
 
-Na raiz:
+Na raiz, o bucket do state é injetado em tempo de `init` (o `backend.tf` não fixa o bucket, mantendo o repositório agnóstico de conta):
 
 ```bash
-terraform init
+terraform init -backend-config="bucket=$TF_STATE_BUCKET"
 ```
 
 Validar:
@@ -915,6 +916,8 @@ bootstrap/
 ```
 
 A separação permite preparar recursos-base antes de executar a infraestrutura principal.
+
+Na prática o bootstrap é feito pelo workflow **`Bootstrap AWS`** (`.github/workflows/bootstrap.yaml`), que cria os três buckets usados pelo projeto a partir das variáveis de organização `TF_STATE_BUCKET`, `TF_LAMBDA_BUCKET` e `TF_KAFKA_BUCKET`. O módulo em `bootstrap/` é o equivalente local; como `bucket_name` não tem default, execute-o passando `-var="bucket_name=..."`.
 
 ---
 
@@ -990,9 +993,11 @@ Alguns princípios utilizados na infraestrutura:
 
 ### Secrets
 
-Credenciais e informações sensíveis não devem ser armazenadas diretamente nos manifests versionados.
+Credenciais e informações sensíveis não ficam versionadas. O `app-secret` é criado pelo Terraform a partir de GitHub Secrets de organização, o `k8s/secret.yaml` é só referência (excluído do Argo CD) e a Lambda recebe as credenciais como variáveis de ambiente.
 
-A infraestrutura utiliza AWS Secrets Manager para armazenar informações sensíveis.
+### Rede
+
+A Lambda que acessa o RDS roda dentro da VPC com egress restrito a `5432` (RDS) e `443` (VPC endpoint de CloudWatch Logs), sem exposição pública.
 
 ### Health checks
 
@@ -1047,7 +1052,7 @@ Um fluxo simplificado é:
         └─────────────┘
 ```
 
-A Lambda possui seu próprio repositório de código, enquanto sua infraestrutura e integração com AWS são declaradas neste repositório.
+A Lambda possui seu próprio repositório de código (`lambda-code`), publica o artefato no S3 e notifica este repositório. O banco é provisionado pelo repositório `db-oficina-mecanica`, que aciona o `Deploy AWS Resources` assim que o RDS sobe. A infraestrutura e a integração com a AWS de ambos são declaradas aqui.
 
 ---
 
@@ -1063,7 +1068,9 @@ A Lambda possui seu próprio repositório de código, enquanto sua infraestrutur
 | **Ingress**        | Roteamento HTTP                     |
 | **Monólito**       | Backend principal                   |
 | **MS Orçamentos**  | Serviço de orçamentos               |
-| **PostgreSQL**     | Persistência                        |
+| **Amazon RDS**     | Persistência gerenciada (PostgreSQL) |
+| **API Gateway**    | Entrada HTTP + Lambda Authorizer    |
+| **Lambda**         | Validação de CPF e autorização JWT  |
 | **Kafka**          | Mensageria                          |
 | **Kafka UI**       | Administração/visualização do Kafka |
 | **HPA**            | Autoscaling                         |
@@ -1100,49 +1107,3 @@ O projeto demonstra a evolução de uma aplicação de oficina mecânica para um
 Este projeto está licenciado sob a licença **MIT**.
 
 Consulte o arquivo [`LICENSE`](./LICENSE) para mais informações.
-
-## Revisão da migração para Authorizer
-
-- Apenas POST /auth/cpf é enviado à ValidatorHandler. POST /auth/login,
-  /auth/chatbot e /auth/change-password continuam no monólito.
-- Rotas protegidas usam os nomes reais da API: owners, vehicles,
-  service-orders, catalog, supplies, suppliers, purchase-orders, users e reporting.
-- O cache do authorizer fica desativado por padrão; a expiração é conferida
-  a cada chamada. O monólito continua validando JWT, papéis e dono do recurso.
-- O ZIP de deploy contém somente lib/lambda-code.jar, com os dois handlers.
-- Publicar o novo artefato antes de aplicar a infraestrutura que referencia
-  AuthorizerHandler; implantar também o controle de dono no monólito.
-- Não foi validado deploy na AWS nesta revisão. Rede entre Lambda e RDS
-  privado permanece pendente por decisão do grupo. Terraform validate não
-  comprova conectividade, permissões IAM nem disponibilidade dos serviços.
-- A consulta atual de cliente verifica existência, não status ativo/inativo:
-  esse requisito ainda depende da evolução do modelo owners.
-## Conclusão da autenticação por status e publicação
-
-A Lambda agora exige owners.active = true e document_type = CPF. Cliente
-inativo recebe 403 CLIENT_INACTIVE e não recebe token. Banco indisponível
-ou schema sem active falha fechado, sem emitir JWT.
-
-Antes de publicar a Lambda, executar docs/migrations/001-owner-active.sql
-no repositório mnl-oficina-mecanica com a credencial de migração. O script
-é reaplicável e define clientes existentes como ativos. Novos clientes
-nascem ativos. PATCH /owners/{id}/status com {"active":false} ou true é
-restrito a ADMIN. Edições comuns do cadastro preservam o status.
-Tokens já emitidos continuam válidos até expirar (30 minutos); desativar
-bloqueia novas autenticações, não implementa revogação instantânea.
-
-O workflow da Lambda testa PRs e publica automaticamente em push para main
-(producao) e homologacao (homologacao), somente no repositório Grupo-SOAT.
-Configurar os dois GitHub Environments com credenciais AWS e variáveis
-TF_LAMBDA_BUCKET, LAMBDA_VALIDATOR_NAME e LAMBDA_AUTHORIZER_NAME. Usar contas
-ou funções/buckets distintos para não sobrescrever produção. As funções
-precisam existir previamente via Terraform, com o novo artefato para o
-bootstrap. Após isso, o pipeline atualiza código e aguarda ambas as funções.
-Terraform mantém configuração/handlers e ignora alterações posteriores de
-s3_key/source_code_hash, cujo proprietário passa a ser esse pipeline.
-
-A configuração dos Environments e proteção das branches exige administrador
-da organização; a conta usada nesta entrega tem somente leitura nos repos
-originais. Não foram criadas credenciais nem disparados deploys nesta entrega.
-Rede Lambda/RDS privado mantida conforme combinado. A validação AWS permanece
-pendente e não é substituída pelos testes locais.

@@ -3,6 +3,10 @@ name: Destroy AWS Resources
 on:
   workflow_dispatch:
 
+concurrency:
+  group: deploy-aws-resources
+  cancel-in-progress: false
+
 jobs:
 
   destroy-infra:
@@ -15,7 +19,7 @@ jobs:
 
       - name: Checkout Repository
         uses: actions/checkout@v4
-    
+
       - name: Setup Terraform on Runner
         uses: hashicorp/setup-terraform@v4
         with:
@@ -27,17 +31,17 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
-      
+          aws-region: ${{ vars.AWS_REGION }}
+
       - name: Destroy Lambda S3 Bucket
         continue-on-error: true
+        env:
+          BUCKET: ${{ vars.TF_LAMBDA_BUCKET }}
         run: |
-          BUCKET="${{ vars.TF_LAMBDA_BUCKET }}"
-
           echo "Limpando bucket: $BUCKET"
 
           while true; do
-            VERSIONS=$(aws s3api list-object-versions \
+            OBJECTS=$(aws s3api list-object-versions \
               --bucket "$BUCKET" \
               --query 'Versions[].{Key:Key,VersionId:VersionId}' \
               --output json)
@@ -47,12 +51,12 @@ jobs:
               --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' \
               --output json)
 
-            OBJECTS=$(jq -n \
-              --argjson versions "$VERSIONS" \
+            ALL=$(jq -n \
+              --argjson versions "$OBJECTS" \
               --argjson markers "$DELETE_MARKERS" \
               '$versions + $markers')
 
-            COUNT=$(echo "$OBJECTS" | jq 'length')
+            COUNT=$(echo "$ALL" | jq 'length')
 
             if [ "$COUNT" -eq 0 ]; then
               break
@@ -60,7 +64,7 @@ jobs:
 
             echo "Excluindo $COUNT objetos/versões..."
 
-            echo "$OBJECTS" |
+            echo "$ALL" |
               jq '{Objects: .[:1000], Quiet: true}' |
               aws s3api delete-objects \
                 --bucket "$BUCKET" \
@@ -74,13 +78,13 @@ jobs:
 
       - name: Destroy Kafka History S3 Bucket
         continue-on-error: true
+        env:
+          BUCKET: ${{ vars.TF_KAFKA_BUCKET }}
         run: |
-          BUCKET="${{ vars.TF_KAFKA_BUCKET }}"
-
           echo "Limpando bucket: $BUCKET"
 
           while true; do
-            VERSIONS=$(aws s3api list-object-versions \
+            OBJECTS=$(aws s3api list-object-versions \
               --bucket "$BUCKET" \
               --query 'Versions[].{Key:Key,VersionId:VersionId}' \
               --output json)
@@ -90,12 +94,12 @@ jobs:
               --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' \
               --output json)
 
-            OBJECTS=$(jq -n \
-              --argjson versions "$VERSIONS" \
+            ALL=$(jq -n \
+              --argjson versions "$OBJECTS" \
               --argjson markers "$DELETE_MARKERS" \
               '$versions + $markers')
 
-            COUNT=$(echo "$OBJECTS" | jq 'length')
+            COUNT=$(echo "$ALL" | jq 'length')
 
             if [ "$COUNT" -eq 0 ]; then
               break
@@ -103,7 +107,7 @@ jobs:
 
             echo "Excluindo $COUNT objetos/versões..."
 
-            echo "$OBJECTS" |
+            echo "$ALL" |
               jq '{Objects: .[:1000], Quiet: true}' |
               aws s3api delete-objects \
                 --bucket "$BUCKET" \
@@ -120,33 +124,43 @@ jobs:
 
       - name: Configure kubectl
         run: |
-          CLUSTER_NAME=$(terraform output -raw cluster_name)
+          CLUSTER_NAME=$(terraform output -raw cluster_name 2>/dev/null || true)
+
+          if [ -z "$CLUSTER_NAME" ]; then
+            echo "No cluster in state; skipping kubeconfig."
+            exit 0
+          fi
 
           aws eks update-kubeconfig \
-            --region us-east-1 \
+            --region "${{ vars.AWS_REGION }}" \
             --name "$CLUSTER_NAME"
+
+      - name: Delete app ingress and wait for Load Balancer finalizer
+        run: |
+          CLUSTER_NAME=$(terraform output -raw cluster_name 2>/dev/null || true)
+
+          if [ -z "$CLUSTER_NAME" ]; then
+            echo "No cluster in state; skipping ingress cleanup."
+            exit 0
+          fi
+
+          kubectl delete ingress workshop-backend-ingress \
+            -n oficina-mecanica --ignore-not-found --timeout=120s || true
+
+          for i in $(seq 1 30); do
+            REMAINING=$(kubectl get ingress -n oficina-mecanica --no-headers 2>/dev/null | wc -l)
+
+            if [ "$REMAINING" -eq 0 ]; then
+              echo "Ingress removido."
+              break
+            fi
+
+            echo "Aguardando finalizer do Load Balancer... tentativa $i/30"
+            sleep 10
+          done
 
       - name: Terraform Destroy Plan
         run: terraform plan -destroy
 
       - name: Destroy all Resources
-        run: terraform destroy -auto-approve 
-      
-      - name: Destroy AWS secrets Brute force
-        if: always()
-        run: |
-          SECRETS=(
-            "oficina-mecanica/database-user"
-            "oficina-mecanica/database-password"
-            "oficina-mecanica/jwt-secret"
-            "oficina-mecanica/api-key-chatbot"
-            "oficina-mecanica/spring-datasource-password"
-            "oficina-mecanica/spring-datasource-username"
-            "oficina-mecanica/default-user-password"
-          )
-
-          for SECRET in "${SECRETS[@]}"; do
-            aws secretsmanager delete-secret \
-              --secret-id "$SECRET" \
-              --force-delete-without-recovery 2>/dev/null || true
-          done
+        run: terraform destroy -auto-approve

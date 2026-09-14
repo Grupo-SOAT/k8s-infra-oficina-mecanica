@@ -179,6 +179,8 @@ module "network" {
 
   source = "./modules/aws/network"
 
+  project_name = var.project_name
+
 }
 
 module "eks" {
@@ -234,74 +236,8 @@ resource "kubernetes_storage_class_v1" "gp3" {
   depends_on = [module.eks]
 }
 
-module "database_user_secret" {
-  source = "./modules/aws/secret-manager"
-
-  secret_name  = "oficina-mecanica/database-user"
-  description  = "Credencial de usuário do banco de dados"
-  project_name = var.project_name
-
-  secret_value = var.database_user_secret
-}
-
-module "database_password_secret" {
-  source = "./modules/aws/secret-manager"
-
-  secret_name  = "oficina-mecanica/database-password"
-  description  = "Credencial de senha do banco de dados"
-  project_name = var.project_name
-
-  secret_value = var.database_password_secret
-}
-
-module "jwt_secret" {
-  source = "./modules/aws/secret-manager"
-
-  secret_name  = "oficina-mecanica/jwt-secret"
-  description  = "Secret para validar assinatura jwt"
-  project_name = var.project_name
-
-  secret_value = var.jwt_secret
-}
-
-module "api_key_chatbot" {
-  source = "./modules/aws/secret-manager"
-
-  secret_name  = "oficina-mecanica/api-key-chatbot"
-  description  = "chave para o CHATBOT acessar a API"
-  project_name = var.project_name
-
-  secret_value = var.api_key_chatbot
-}
-
-module "spring_datasource_password" {
-  source = "./modules/aws/secret-manager"
-
-  secret_name  = "oficina-mecanica/spring-datasource-password"
-  description  = "Senha do spring datasource"
-  project_name = var.project_name
-
-  secret_value = var.spring_datasource_password
-}
-
-module "spring_datasource_username" {
-  source = "./modules/aws/secret-manager"
-
-  secret_name  = "oficina-mecanica/spring-datasource-username"
-  description  = "usuario spring datasource"
-  project_name = var.project_name
-
-  secret_value = var.spring_datasource_username
-}
-
-module "default_user_password" {
-  source = "./modules/aws/secret-manager"
-
-  secret_name  = "oficina-mecanica/default-user-password"
-  description  = "Senha default para todo usuario criado no sistema"
-  project_name = var.project_name
-
-  secret_value = var.default_user_password
+data "aws_db_instance" "this" {
+  db_instance_identifier = var.db_identifier
 }
 
 module "api_gateway" {
@@ -344,19 +280,21 @@ module "lambda" {
 
   source_code_hash = var.source_hash_code_lambda
 
-  database_user_secret_arn = module.database_user_secret.secret_arn
+  vpc_subnet_ids = module.network.subnet_ids
 
-  database_password_secret_arn = module.database_password_secret.secret_arn
+  vpc_security_group_ids = [module.network.lambda_security_group_id]
 
-  database_host = var.database_host
+  database_host = data.aws_db_instance.this.address
 
-  database_port = var.database_port
+  database_port = data.aws_db_instance.this.port
 
-  database_name = var.database_name
+  database_name = data.aws_db_instance.this.db_name
 
-  jwt_secret_arn = module.jwt_secret.secret_arn
+  database_user = var.database_user_secret
 
-  backend_url = var.backend_url
+  database_password = var.database_password_secret
+
+  jwt_secret = var.jwt_secret
 }
 
 module "lambda_authorizer" {
@@ -382,14 +320,5 @@ module "lambda_authorizer" {
 
   source_code_hash = var.source_hash_code_lambda
 
-  # O authorizer so valida o JWT: nao consulta banco, so precisa do secret.
-  database_user_secret_arn     = module.database_user_secret.secret_arn
-  database_password_secret_arn = module.database_password_secret.secret_arn
-  database_host                = var.database_host
-  database_port                = var.database_port
-  database_name                = var.database_name
-
-  jwt_secret_arn = module.jwt_secret.secret_arn
-
-  backend_url = var.backend_url
+  jwt_secret = var.jwt_secret
 }

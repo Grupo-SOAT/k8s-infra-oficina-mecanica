@@ -40,21 +40,21 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Create Dedicated State Bucket (se não existir)
+        env:
+          BUCKET: ${{ vars.TF_STATE_BUCKET }}
         run: |
-          BUCKET="grupo-soat-oficina-mecanica-1-terraform-state"
-
           if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
             echo "Bucket $BUCKET já existe."
           else
             echo "Criando bucket $BUCKET..."
-            aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
+            aws s3api create-bucket --bucket "$BUCKET" --region "${{ vars.AWS_REGION }}"
           fi
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
 
       - name: Terraform Validate
         run: terraform validate
