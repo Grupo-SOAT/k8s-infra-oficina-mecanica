@@ -1,7 +1,7 @@
 name: Validate gateway infrastructure
 on:
   pull_request:
-    paths: ['modules/aws/gateway/**', 'main.tf', 'variables.tf', '.github/workflows/gateway-ci.yaml']
+    paths: ['modules/aws/gateway/**', 'modules/aws/network/**', 'main.tf', 'variables.tf', '.github/workflows/gateway-ci.yaml']
 permissions:
   contents: read
 jobs:
