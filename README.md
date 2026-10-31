@@ -1,6 +1,6 @@
 # 🚗 K8s Infra - Oficina Mecânica
 
-Repositório responsável pela **infraestrutura Kubernetes e AWS** da aplicação **Oficina Mecânica**, desenvolvida pelo **Grupo-SOAT** para o **Tech Challenge – Fase 3**.
+Repositório responsável pela **infraestrutura Kubernetes e AWS** da aplicação **Oficina Mecânica**, desenvolvida pelo **Grupo-SOAT**.
 
 O projeto utiliza **Terraform** para provisionamento da infraestrutura e **Kubernetes + Argo CD** para gerenciamento e entrega dos workloads da aplicação.
 
@@ -1090,13 +1090,11 @@ A Lambda possui seu próprio repositório de código (`lambda-code`), publica o 
 
 ---
 
-# 🎓 Tech Challenge
+# 🚗 Sobre o projeto
 
-Este repositório faz parte da solução desenvolvida pelo **Grupo-SOAT** para o:
+Este repositório faz parte da solução **Oficina Mecânica**, desenvolvida pelo **Grupo-SOAT**.
 
-**FIAP — Tech Challenge / Pós-graduação em Arquitetura de Software**
-
-O projeto demonstra a evolução de uma aplicação de oficina mecânica para uma arquitetura baseada em:
+A aplicação é baseada em:
 
 * containers;
 * Kubernetes;
