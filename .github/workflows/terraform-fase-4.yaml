@@ -1,0 +1,116 @@
+name: Set up Infra and Initial Deploy | Terraform
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup-infra:
+    name: Set up Local Cluster
+    runs-on: maquina-leo
+
+    env:
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      API_KEY_CHATBOT: ${{ secrets.API_KEY_CHATBOT }}
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
+      SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+
+    steps:
+
+      # ==================================================
+      # CHECKOUT DOS REPOSITÓRIOS
+      # ==================================================
+
+      - name: Checkout K8s Infra Repository
+        uses: actions/checkout@v4
+        with:
+          path: k8s-infra
+
+      - name: Checkout Sistema Oficina Repository
+        uses: actions/checkout@v4
+        with:
+          repository: Grupo-SOAT/sistema-oficina-mecanica
+          ref: main
+          path: sistema-oficina-mecanica
+
+      # ==================================================
+      # KUBERNETES SECRETS
+      # ==================================================
+
+      - name: Replace Kubernetes Secrets 🔑 ☸️
+        working-directory: sistema-oficina-mecanica
+        run: |
+          ./scripts/replace-k8s-secrets.ps1
+
+      # ==================================================
+      # TERRAFORM STATE
+      # ==================================================
+
+      - name: Restore Terraform State 🔁
+        working-directory: sistema-oficina-mecanica
+        run: |
+          ./scripts/restore-terraform-state.ps1
+
+      # ==================================================
+      # TERRAFORM
+      # ==================================================
+
+      - name: Terraform Init 🔨
+        working-directory: sistema-oficina-mecanica/infra
+        run: terraform init
+
+      - name: Terraform Validate 📜
+        working-directory: sistema-oficina-mecanica/infra
+        run: terraform validate
+
+      - name: Terraform Plan 🤔
+        working-directory: sistema-oficina-mecanica/infra
+        run: terraform plan
+
+      - name: Terraform Apply 🚀
+        working-directory: sistema-oficina-mecanica/infra
+        run: terraform apply -auto-approve
+
+      # ==================================================
+      # BACKUP TERRAFORM STATE
+      # ==================================================
+
+      - name: Backup Terraform State 🔁
+        working-directory: sistema-oficina-mecanica
+        run: |
+          ./scripts/backup-terraform-state.ps1
+
+      # ==================================================
+      # KAFKA
+      # ==================================================
+
+      - name: Wait for Kafka
+        working-directory: sistema-oficina-mecanica
+        run: ./scripts/wait-kafka.ps1
+
+      - name: Create Kafka Topics
+        working-directory: sistema-oficina-mecanica
+        run: ./scripts/create-kafka-topics.ps1
+
+      # ==================================================
+      # SUCCESS
+      # ==================================================
+
+      - name: Log Success ✅
+        run: |
+          Write-Host ""
+          Write-Host "======================================="
+          Write-Host "Infraestrutura criada com sucesso!"
+          Write-Host ""
+          Write-Host "Minikube"
+          Write-Host "Namespaces"
+          Write-Host "Metrics Server"
+          Write-Host "NGINX Ingress"
+          Write-Host "Manifestos Kubernetes"
+          Write-Host "Terraform State salvo"
+          Write-Host "======================================="
