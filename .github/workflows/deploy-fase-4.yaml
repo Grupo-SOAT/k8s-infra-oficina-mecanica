@@ -65,6 +65,16 @@ jobs:
         working-directory: application/${{ inputs.maven_workdir }}
         run: mvn clean install
 
+      - name: Upload JaCoCo Coverage Report 📊
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report-${{ github.repository_id }}-${{ github.sha }}
+          path: application/**/target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 30
+          compression-level: 6
+
 
   # ==========================================
   # DEPLOY APPLICATION
