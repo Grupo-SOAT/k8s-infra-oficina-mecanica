@@ -1,0 +1,218 @@
+
+name: Deploy Application
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        description: "Nome da imagem Docker"
+        required: true
+        type: string
+
+      dockerfile:
+        description: "Caminho do Dockerfile"
+        required: true
+        type: string
+
+      build_context:
+        description: "Contexto do build Docker"
+        required: true
+        type: string
+
+      maven_workdir:
+        description: "Diretório do projeto Maven"
+        required: true
+        type: string
+
+      deployment_manifest:
+        description: "Caminho do manifesto Kubernetes"
+        required: true
+        type: string
+
+      source_branch:
+        description: "Branch da fonte da verdade"
+        required: false
+        type: string
+        default: main
+
+jobs:
+
+  # ==========================================
+  # BUILD APPLICATION
+  # ==========================================
+
+  build-app:
+    name: Build Application
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Application Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          path: application
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+          cache-dependency-path: application/**/pom.xml
+
+      - name: Build and Tests App ☕
+        working-directory: application/${{ inputs.maven_workdir }}
+        run: mvn clean install
+
+
+  # ==========================================
+  # DEPLOY APPLICATION
+  # ==========================================
+
+  deploy-app:
+    name: Deploy Application
+    needs: build-app
+    runs-on: maquina-leo
+
+    env:
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      API_KEY_CHATBOT: ${{ secrets.API_KEY_CHATBOT }}
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
+      SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+
+      DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+      IMAGE_NAME: ${{ inputs.image_name }}
+      IMAGE_SHA: ${{ github.sha }}
+
+    steps:
+
+      # --------------------------------------
+      # CHECKOUTS
+      # --------------------------------------
+
+      - name: Checkout Application Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          path: application
+
+      - name: Checkout Source of Truth Repository
+        uses: actions/checkout@v4
+        with:
+          repository: Grupo-SOAT/sistema-oficina-mecanica
+          ref: ${{ inputs.source_branch }}
+          token: ${{ secrets.PAT_REPO_INFRA_LAMBDA }}
+          path: source-of-truth
+
+      # --------------------------------------
+      # DEBUG
+      # --------------------------------------
+
+      - name: Debug Variables 🔎
+        shell: powershell
+        run: |
+          Write-Host "Application: ${{ github.repository }}"
+          Write-Host "Registry: $env:DOCKER_REGISTRY"
+          Write-Host "Image: $env:IMAGE_NAME"
+          Write-Host "SHA: $env:IMAGE_SHA"
+          Write-Host "Dockerfile: ${{ inputs.dockerfile }}"
+          Write-Host "Context: ${{ inputs.build_context }}"
+          Write-Host "Manifest: ${{ inputs.deployment_manifest }}"
+
+      # --------------------------------------
+      # RESTORE TERRAFORM STATE
+      # --------------------------------------
+
+      - name: Restore Terraform State 🔁
+        shell: powershell
+        working-directory: source-of-truth
+        run: |
+          ./scripts/restore-terraform-state.ps1
+
+      # --------------------------------------
+      # DOCKER BUILD
+      # --------------------------------------
+
+      - name: Build Docker Image 🐋
+        shell: powershell
+        run: |
+          docker build `
+            -f "application/${{ inputs.dockerfile }}" `
+            -t "$env:DOCKER_REGISTRY/$env:IMAGE_NAME:latest" `
+            -t "$env:DOCKER_REGISTRY/$env:IMAGE_NAME:$env:IMAGE_SHA" `
+            "application/${{ inputs.build_context }}"
+
+      # --------------------------------------
+      # DOCKER PUSH
+      # --------------------------------------
+
+      - name: Push New Version to Registry 🐋
+        shell: powershell
+        run: |
+          docker push "$env:DOCKER_REGISTRY/$env:IMAGE_NAME:latest"
+          docker push "$env:DOCKER_REGISTRY/$env:IMAGE_NAME:$env:IMAGE_SHA"
+
+      # --------------------------------------
+      # TERRAFORM INIT
+      # --------------------------------------
+
+      - name: Run Terraform Init
+        working-directory: source-of-truth/infra
+        shell: powershell
+        run: terraform init
+
+      # --------------------------------------
+      # KUBERNETES SECRETS
+      # --------------------------------------
+
+      - name: Replace Kubernetes Secrets 🔑 ☸️
+        shell: powershell
+        working-directory: source-of-truth
+        run: |
+          ./scripts/replace-k8s-secrets.ps1
+
+      # --------------------------------------
+      # UPDATE DEPLOYMENT MANIFEST
+      # --------------------------------------
+
+      - name: Update Deployment Manifest 📝
+        shell: powershell
+        working-directory: source-of-truth
+        run: |
+          ./scripts/replace-image-tag.ps1 `
+            -Manifest "${{ inputs.deployment_manifest }}" `
+            -Registry "$env:DOCKER_REGISTRY" `
+            -Image "$env:IMAGE_NAME" `
+            -Tag "$env:IMAGE_SHA"
+
+      # --------------------------------------
+      # TERRAFORM APPLY
+      # --------------------------------------
+
+      - name: Deploy Application 🚀
+        working-directory: source-of-truth/infra
+        shell: powershell
+        run: terraform apply -auto-approve
+
+      # --------------------------------------
+      # BACKUP TERRAFORM STATE
+      # --------------------------------------
+
+      - name: Backup Terraform State
+        shell: powershell
+        working-directory: source-of-truth
+        run: |
+          ./scripts/backup-terraform-state.ps1
+
+      # --------------------------------------
+      # SUCCESS
+      # --------------------------------------
+
+      - name: Log Success ✅
+        shell: powershell
+        run: |
+          Write-Host "Deploy de $env:IMAGE_NAME concluído!"
