@@ -115,7 +115,6 @@ jobs:
         with:
           repository: Grupo-SOAT/sistema-oficina-mecanica
           ref: ${{ inputs.source_branch }}
-          token: ${{ secrets.PAT_REPO_INFRA_LAMBDA }}
           path: source-of-truth
 
       # --------------------------------------
@@ -147,24 +146,28 @@ jobs:
       # DOCKER BUILD
       # --------------------------------------
 
+      
       - name: Build Docker Image 🐋
         shell: powershell
         run: |
           docker build `
             -f "application/${{ inputs.dockerfile }}" `
-            -t "$env:DOCKER_REGISTRY/$env:IMAGE_NAME:latest" `
-            -t "$env:DOCKER_REGISTRY/$env:IMAGE_NAME:$env:IMAGE_SHA" `
+            -t "${env:DOCKER_REGISTRY}/${env:IMAGE_NAME}:latest" `
+            -t "${env:DOCKER_REGISTRY}/${env:IMAGE_NAME}:${env:IMAGE_SHA}" `
             "application/${{ inputs.build_context }}"
+
 
       # --------------------------------------
       # DOCKER PUSH
       # --------------------------------------
 
+      
       - name: Push New Version to Registry 🐋
         shell: powershell
         run: |
-          docker push "$env:DOCKER_REGISTRY/$env:IMAGE_NAME:latest"
-          docker push "$env:DOCKER_REGISTRY/$env:IMAGE_NAME:$env:IMAGE_SHA"
+          docker push "${env:DOCKER_REGISTRY}/${env:IMAGE_NAME}:latest"
+          docker push "${env:DOCKER_REGISTRY}/${env:IMAGE_NAME}:${env:IMAGE_SHA}"
+
 
       # --------------------------------------
       # TERRAFORM INIT
