@@ -105,7 +105,6 @@ jobs:
         with:
           repository: Grupo-SOAT/sistema-oficina-mecanica
           ref: ${{ inputs.source_branch }}
-          token: ${{ secrets.PAT_REPO_INFRA_LAMBDA }}
           path: source-of-truth
 
       # --------------------------------------
